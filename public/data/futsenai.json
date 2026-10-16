@@ -17,7 +17,7 @@
     {
       "id": 2,
       "name": "Thiago",
-      "photo_path": null,
+      "photo_path": "/uploads/109b305a-97e0-4fac-936d-57ae919d1f0c.jpg",
       "is_active": 1,
       "quality": 5
     },
@@ -45,7 +45,7 @@
     {
       "id": 6,
       "name": "Pietro",
-      "photo_path": null,
+      "photo_path": "/uploads/0eb7980b-1172-4807-b5cd-1c81a5cea20d.jpg",
       "is_active": 1,
       "quality": 5
     },
