@@ -1,0 +1,593 @@
+{
+  "schemaVersion": 1,
+  "nextIds": {
+    "players": 15,
+    "matches": 7,
+    "match_players": 50,
+    "goals": 177
+  },
+  "players": [
+    {
+      "id": 1,
+      "name": "Gabriel",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 2
+    },
+    {
+      "id": 2,
+      "name": "Thiago",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 5
+    },
+    {
+      "id": 3,
+      "name": "Heitor",
+      "photo_path": "/uploads/e309f969-32d7-4c61-9b14-eec8ae753fe0.png",
+      "is_active": 1,
+      "quality": 3
+    },
+    {
+      "id": 4,
+      "name": "Assunção",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 3
+    },
+    {
+      "id": 5,
+      "name": "Jonas",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 3
+    },
+    {
+      "id": 6,
+      "name": "Pietro",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 5
+    },
+    {
+      "id": 7,
+      "name": "Dutra",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 3
+    },
+    {
+      "id": 8,
+      "name": "João",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 4
+    },
+    {
+      "id": 9,
+      "name": "Muzy",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 3
+    },
+    {
+      "id": 10,
+      "name": "Mateus",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 1
+    },
+    {
+      "id": 11,
+      "name": "Enzo",
+      "photo_path": null,
+      "is_active": 1,
+      "quality": 4
+    }
+  ],
+  "matches": [
+    {
+      "id": 1,
+      "played_on": "2026-10-09",
+      "opponent_type": "classmates"
+    },
+    {
+      "id": 5,
+      "played_on": "2026-10-16",
+      "opponent_type": "classmates"
+    },
+    {
+      "id": 6,
+      "played_on": "2026-10-14",
+      "opponent_type": "second_year"
+    }
+  ],
+  "match_players": [
+    {
+      "id": 1,
+      "match_id": 1,
+      "player_id": 4,
+      "team_side": "A"
+    },
+    {
+      "id": 2,
+      "match_id": 1,
+      "player_id": 7,
+      "team_side": "A"
+    },
+    {
+      "id": 3,
+      "match_id": 1,
+      "player_id": 11,
+      "team_side": "B"
+    },
+    {
+      "id": 4,
+      "match_id": 1,
+      "player_id": 1,
+      "team_side": "B"
+    },
+    {
+      "id": 5,
+      "match_id": 1,
+      "player_id": 3,
+      "team_side": "B"
+    },
+    {
+      "id": 6,
+      "match_id": 1,
+      "player_id": 5,
+      "team_side": "A"
+    },
+    {
+      "id": 7,
+      "match_id": 1,
+      "player_id": 8,
+      "team_side": "B"
+    },
+    {
+      "id": 8,
+      "match_id": 1,
+      "player_id": 10,
+      "team_side": "A"
+    },
+    {
+      "id": 9,
+      "match_id": 1,
+      "player_id": 9,
+      "team_side": "A"
+    },
+    {
+      "id": 10,
+      "match_id": 1,
+      "player_id": 6,
+      "team_side": "B"
+    },
+    {
+      "id": 33,
+      "match_id": 5,
+      "player_id": 4,
+      "team_side": "A"
+    },
+    {
+      "id": 34,
+      "match_id": 5,
+      "player_id": 7,
+      "team_side": "A"
+    },
+    {
+      "id": 35,
+      "match_id": 5,
+      "player_id": 11,
+      "team_side": "A"
+    },
+    {
+      "id": 36,
+      "match_id": 5,
+      "player_id": 1,
+      "team_side": "A"
+    },
+    {
+      "id": 37,
+      "match_id": 5,
+      "player_id": 3,
+      "team_side": "B"
+    },
+    {
+      "id": 38,
+      "match_id": 5,
+      "player_id": 5,
+      "team_side": "B"
+    },
+    {
+      "id": 39,
+      "match_id": 5,
+      "player_id": 8,
+      "team_side": "B"
+    },
+    {
+      "id": 40,
+      "match_id": 5,
+      "player_id": 10,
+      "team_side": "A"
+    },
+    {
+      "id": 41,
+      "match_id": 5,
+      "player_id": 9,
+      "team_side": "A"
+    },
+    {
+      "id": 42,
+      "match_id": 5,
+      "player_id": 6,
+      "team_side": "B"
+    },
+    {
+      "id": 43,
+      "match_id": 5,
+      "player_id": 2,
+      "team_side": "B"
+    },
+    {
+      "id": 44,
+      "match_id": 6,
+      "player_id": 7,
+      "team_side": "A"
+    },
+    {
+      "id": 45,
+      "match_id": 6,
+      "player_id": 11,
+      "team_side": "A"
+    },
+    {
+      "id": 46,
+      "match_id": 6,
+      "player_id": 3,
+      "team_side": "A"
+    },
+    {
+      "id": 47,
+      "match_id": 6,
+      "player_id": 8,
+      "team_side": "A"
+    },
+    {
+      "id": 48,
+      "match_id": 6,
+      "player_id": 10,
+      "team_side": "A"
+    },
+    {
+      "id": 49,
+      "match_id": 6,
+      "player_id": 9,
+      "team_side": "A"
+    }
+  ],
+  "goals": [
+    {
+      "id": 1,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 4,
+      "goal_type": "normal"
+    },
+    {
+      "id": 2,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 4,
+      "goal_type": "normal"
+    },
+    {
+      "id": 3,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 4,
+      "goal_type": "normal"
+    },
+    {
+      "id": 4,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 4,
+      "goal_type": "normal"
+    },
+    {
+      "id": 5,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 4,
+      "goal_type": "normal"
+    },
+    {
+      "id": 6,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 10,
+      "goal_type": "normal"
+    },
+    {
+      "id": 7,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 9,
+      "goal_type": "normal"
+    },
+    {
+      "id": 8,
+      "match_id": 1,
+      "team_side": "A",
+      "player_id": 9,
+      "goal_type": "normal"
+    },
+    {
+      "id": 9,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 10,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 11,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 12,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 13,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 3,
+      "goal_type": "normal"
+    },
+    {
+      "id": 14,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 3,
+      "goal_type": "normal"
+    },
+    {
+      "id": 15,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 3,
+      "goal_type": "normal"
+    },
+    {
+      "id": 16,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 8,
+      "goal_type": "normal"
+    },
+    {
+      "id": 17,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 18,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 19,
+      "match_id": 1,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 150,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 151,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 152,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 9,
+      "goal_type": "normal"
+    },
+    {
+      "id": 153,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 8,
+      "goal_type": "normal"
+    },
+    {
+      "id": 154,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 155,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 156,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 157,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 158,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 159,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 160,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 161,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 162,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 163,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": 11,
+      "goal_type": "normal"
+    },
+    {
+      "id": 164,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": 8,
+      "goal_type": "own_goal"
+    },
+    {
+      "id": 165,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": 10,
+      "goal_type": "normal"
+    },
+    {
+      "id": 166,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 167,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 168,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 169,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 170,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 171,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 172,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 173,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 174,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 175,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 176,
+      "match_id": 6,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    }
+  ]
+}

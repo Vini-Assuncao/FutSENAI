@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const db = require('./database');
+const dataStore = require('./data-store');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -50,7 +50,7 @@ function optionalText(value, max = 500) {
   return text;
 }
 function normalizeScope(value) {
-  return ['interclass', 'internal'].includes(value) ? value : 'all';
+  return value === 'interclass' ? 'interclass' : 'internal';
 }
 function validId(value) {
   const id = Number(value);
@@ -62,23 +62,30 @@ function safeRemoveUpload(photoPath) {
   const file = path.join(publicDirectory, photoPath.replace(/^\//, ''));
   if (file.startsWith(uploadsDirectory) && fs.existsSync(file)) fs.unlink(file, () => {});
 }
-function parsePlayerBody(body, existingPhoto = null, uploadedFile = null) {
+function parsePlayerBody(body, existingPhoto = null, uploadedFile = null, existingQuality = 3) {
   const name = requiredText(body.name, 'nome', 100);
+  const quality = Number(body.quality ?? existingQuality);
+  if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
+    throw httpError(400, 'A qualidade do jogador deve ser um número inteiro de 1 a 5.');
+  }
   return {
     name,
+    quality,
     photoPath: uploadedFile ? `/uploads/${uploadedFile.filename}` : existingPhoto
   };
 }
-function getScores(matchId) {
-  const rows = db.prepare(`SELECT team_side, COUNT(*) AS score FROM goals WHERE match_id = ? GROUP BY team_side`).all(matchId);
-  return { A: rows.find(row => row.team_side === 'A')?.score || 0, B: rows.find(row => row.team_side === 'B')?.score || 0 };
+function getScores(matchId, data = dataStore.getData()) {
+  return data.goals.reduce((scores, goal) => {
+    if (goal.match_id === matchId) scores[goal.team_side]++;
+    return scores;
+  }, { A: 0, B: 0 });
 }
-function getMatchSummary(match) {
-  const scores = getScores(match.id);
+function getMatchSummary(match, data = dataStore.getData()) {
+  const scores = getScores(match.id, data);
   const isSecondYear = match.opponent_type === 'second_year';
-  const playerCounts = db.prepare(`SELECT team_side, COUNT(*) AS count FROM match_players WHERE match_id = ? GROUP BY team_side`).all(match.id);
   const counts = { A: 0, B: 0 };
-  playerCounts.forEach(row => { counts[row.team_side] = row.count; });
+  data.match_players.filter(participant => participant.match_id === match.id)
+    .forEach(participant => { counts[participant.team_side]++; });
   let outcome = 'draw';
   if (scores.A > scores.B) outcome = 'A';
   if (scores.B > scores.A) outcome = 'B';
@@ -97,7 +104,7 @@ function getMatchSummary(match) {
   };
 }
 function getSecondYearRivalry() {
-  const matches = getMatchList().filter(match => match.opponent_type === 'second_year');
+  const matches = getMatchList(null, 'interclass');
   return {
     matches: matches.length,
     wins: matches.filter(match => match.score_a > match.score_b).length,
@@ -107,73 +114,75 @@ function getSecondYearRivalry() {
     goalsAgainst: matches.reduce((sum, match) => sum + match.score_b, 0)
   };
 }
-function getPlayerStats(playerId, scope = 'all') {
-  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
+function getPlayerStats(playerId, scope = 'internal', data = dataStore.getData()) {
+  const player = data.players.find(item => item.id === playerId);
   if (!player) return null;
-  const scopeCondition = scope === 'interclass'
-    ? "AND m.opponent_type = 'second_year'"
-    : scope === 'internal' ? "AND m.opponent_type = 'classmates'" : '';
-  const played = db.prepare(`
-    SELECT m.id, mp.team_side
-    FROM match_players mp JOIN matches m ON m.id = mp.match_id
-    WHERE mp.player_id = ? ${scopeCondition}
-    ORDER BY m.played_on DESC, m.id DESC
-  `).all(playerId);
+  const matchesById = new Map(data.matches.map(match => [match.id, match]));
+  const played = data.match_players
+    .filter(participant => participant.player_id === playerId)
+    .map(participant => ({ ...participant, match: matchesById.get(participant.match_id) }))
+    .filter(appearance => appearance.match && (!scope || appearance.match.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates')))
+    .sort((left, right) => right.match.played_on.localeCompare(left.match.played_on) || right.match.id - left.match.id);
   let wins = 0, draws = 0, losses = 0;
   for (const appearance of played) {
-    const score = getScores(appearance.id);
+    const score = getScores(appearance.match_id, data);
     const own = appearance.team_side === 'A' ? score.A : score.B;
     const rival = appearance.team_side === 'A' ? score.B : score.A;
     if (own > rival) wins++;
     else if (own === rival) draws++;
     else losses++;
   }
-  const goals = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM goals g JOIN matches m ON m.id = g.match_id
-    WHERE g.player_id = ? AND g.goal_type = 'normal' ${scopeCondition}
-  `).get(playerId).count;
+  const goals = data.goals.filter(goal => {
+    if (goal.player_id !== playerId || goal.goal_type !== 'normal') return false;
+    const match = matchesById.get(goal.match_id);
+    return match && (!scope || match.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates'));
+  }).length;
   return { ...player, matches_played: played.length, goals, wins, draws, losses, win_rate: played.length ? Math.round((wins / played.length) * 100) : 0, goals_per_match: played.length ? Number((goals / played.length).toFixed(2)) : 0 };
 }
-function getPlayerList(includeInactive = false, scope = 'all') {
-  const players = db.prepare(`SELECT * FROM players ${includeInactive ? '' : 'WHERE is_active = 1'} ORDER BY is_active DESC, name COLLATE NOCASE ASC`).all();
-  return players.map(player => getPlayerStats(player.id, scope));
+function getPlayerList(includeInactive = false, scope = 'internal', data = dataStore.getData()) {
+  const players = data.players
+    .filter(player => includeInactive || player.is_active)
+    .sort((left, right) => right.is_active - left.is_active || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
+  return players.map(player => getPlayerStats(player.id, scope, data));
 }
-function getMatchList(limit = null, scope = 'all') {
-  const where = scope === 'interclass' ? "WHERE opponent_type = 'second_year'" : scope === 'internal' ? "WHERE opponent_type = 'classmates'" : '';
-  const rows = db.prepare(`SELECT * FROM matches ${where} ORDER BY played_on DESC, id DESC`).all().map(getMatchSummary);
+function getMatchList(limit = null, scope = 'internal', data = dataStore.getData()) {
+  const rows = data.matches
+    .filter(match => !scope || match.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates'))
+    .sort((left, right) => right.played_on.localeCompare(left.played_on) || right.id - left.id)
+    .map(match => getMatchSummary(match, data));
   return Number.isInteger(limit) ? rows.slice(0, limit) : rows;
 }
-function getMatchDetail(matchId) {
-  const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(matchId);
+function getMatchDetail(matchId, data = dataStore.getData()) {
+  const match = data.matches.find(item => item.id === matchId);
   if (!match) return null;
-  const summary = getMatchSummary(match);
-  const players = db.prepare(`
-    SELECT p.id, p.name, p.photo_path, p.is_active, mp.team_side
-    FROM match_players mp JOIN players p ON p.id = mp.player_id
-    WHERE mp.match_id = ?
-    ORDER BY mp.team_side, p.name COLLATE NOCASE
-  `).all(matchId);
-  const goals = db.prepare(`
-    SELECT g.*, p.name AS player_name, p.photo_path AS player_photo
-    FROM goals g LEFT JOIN players p ON p.id = g.player_id
-    WHERE g.match_id = ?
-    ORDER BY g.id
-  `).all(matchId);
+  const summary = getMatchSummary(match, data);
+  const playersById = new Map(data.players.map(player => [player.id, player]));
+  const players = data.match_players
+    .filter(participant => participant.match_id === matchId)
+    .map(participant => {
+      const player = playersById.get(participant.player_id);
+      return { id: player.id, name: player.name, photo_path: player.photo_path, is_active: player.is_active, team_side: participant.team_side };
+    })
+    .sort((left, right) => left.team_side.localeCompare(right.team_side) || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
+  const goals = data.goals.filter(goal => goal.match_id === matchId).sort((left, right) => left.id - right.id).map(goal => {
+    const player = playersById.get(goal.player_id);
+    return { ...goal, player_name: player?.name ?? null, player_photo: player?.photo_path ?? null };
+  });
   return { ...summary, players, goals };
 }
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'FutSENAI', database: 'SQLite' }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'FutSENAI', database: 'JSON' }));
 
 app.get('/api/dashboard', (req, res, next) => {
   try {
     const scope = normalizeScope(req.query.scope);
-    const activePlayers = db.prepare('SELECT COUNT(*) AS count FROM players WHERE is_active = 1').get().count;
-    const filteredMatches = getMatchList(null, scope);
+    const data = dataStore.getData();
+    const activePlayers = data.players.filter(player => player.is_active).length;
+    const filteredMatches = getMatchList(null, scope, data);
     const totalMatches = filteredMatches.length;
     const totalGoals = filteredMatches.reduce((sum, match) => sum + match.total_goals, 0);
     const recentMatches = filteredMatches.slice(0, 5);
-    const allPlayers = getPlayerList(false, scope);
+    const allPlayers = getPlayerList(false, scope, data);
     const eligibleScorers = allPlayers.filter(player => player.goals > 0 || player.matches_played > 0);
     const topScorers = [...eligibleScorers].sort((a, b) => b.goals - a.goals || b.matches_played - a.matches_played || a.name.localeCompare(b.name)).slice(0, 5);
     const averageGoals = totalMatches ? Number((totalGoals / totalMatches).toFixed(1)) : 0;
@@ -183,27 +192,42 @@ app.get('/api/dashboard', (req, res, next) => {
 });
 app.get('/api/players', (req, res, next) => {
   try {
-    res.json({ data: getPlayerList(req.query.includeInactive === 'true', normalizeScope(req.query.scope)), scope: normalizeScope(req.query.scope) });
+    const data = dataStore.getData();
+    const scope = normalizeScope(req.query.scope);
+    res.json({ data: getPlayerList(req.query.includeInactive === 'true', scope, data), scope });
   } catch (error) { next(error); }
 });
 
 app.post('/api/players', upload.single('photo'), (req, res, next) => {
   try {
     const player = parsePlayerBody(req.body, null, req.file);
-    const result = db.prepare(`INSERT INTO players (name, photo_path) VALUES (?, ?)`)
-      .run(player.name, player.photoPath);
-    res.status(201).json({ message: 'Jogador cadastrado com sucesso.', data: getPlayerStats(Number(result.lastInsertRowid)) });
+    const id = dataStore.transaction(data => {
+      const id = data.nextIds.players++;
+      data.players.push({
+        id,
+        name: player.name,
+        photo_path: player.photoPath,
+        quality: player.quality,
+        is_active: 1
+      });
+      return id;
+    });
+    res.status(201).json({ message: 'Jogador cadastrado com sucesso.', data: getPlayerStats(id) });
   } catch (error) { if (req.file) safeRemoveUpload(`/uploads/${req.file.filename}`); next(error); }
 });
 
 app.put('/api/players/:id', upload.single('photo'), (req, res, next) => {
   try {
     const id = validId(req.params.id);
-    const existing = db.prepare('SELECT * FROM players WHERE id = ?').get(id);
+    const existing = dataStore.getData().players.find(item => item.id === id);
     if (!existing) throw httpError(404, 'Jogador não encontrado.');
-    const player = parsePlayerBody(req.body, existing.photo_path, req.file);
-    db.prepare(`UPDATE players SET name = ?, photo_path = ? WHERE id = ?`)
-      .run(player.name, player.photoPath, id);
+    const player = parsePlayerBody(req.body, existing.photo_path, req.file, existing.quality);
+    dataStore.transaction(data => {
+      const current = data.players.find(item => item.id === id);
+      current.name = player.name;
+      current.photo_path = player.photoPath;
+      current.quality = player.quality;
+    });
     if (req.file && existing.photo_path !== player.photoPath) safeRemoveUpload(existing.photo_path);
     res.json({ message: 'Jogador atualizado com sucesso.', data: getPlayerStats(id) });
   } catch (error) { if (req.file) safeRemoveUpload(`/uploads/${req.file.filename}`); next(error); }
@@ -212,10 +236,12 @@ app.put('/api/players/:id', upload.single('photo'), (req, res, next) => {
 app.patch('/api/players/:id/archive', (req, res, next) => {
   try {
     const id = validId(req.params.id);
-    const player = db.prepare('SELECT * FROM players WHERE id = ?').get(id);
+    const player = dataStore.getData().players.find(item => item.id === id);
     if (!player) throw httpError(404, 'Jogador não encontrado.');
     const active = player.is_active ? 0 : 1;
-    db.prepare('UPDATE players SET is_active = ? WHERE id = ?').run(active, id);
+    dataStore.transaction(data => {
+      data.players.find(item => item.id === id).is_active = active;
+    });
     res.json({ message: active ? 'Jogador reativado.' : 'Jogador arquivado. O histórico foi preservado.', is_active: active });
   } catch (error) { next(error); }
 });
@@ -223,14 +249,19 @@ app.patch('/api/players/:id/archive', (req, res, next) => {
 app.delete('/api/players/:id', (req, res, next) => {
   try {
     const id = validId(req.params.id);
-    const player = db.prepare('SELECT * FROM players WHERE id = ?').get(id);
+    const player = dataStore.getData().players.find(item => item.id === id);
     if (!player) throw httpError(404, 'Jogador não encontrado.');
-    const appearances = db.prepare('SELECT COUNT(*) AS count FROM match_players WHERE player_id = ?').get(id).count;
+    const appearances = dataStore.getData().match_players.filter(item => item.player_id === id).length;
     if (appearances > 0) {
-      db.prepare('UPDATE players SET is_active = 0 WHERE id = ?').run(id);
+      dataStore.transaction(data => {
+        data.players.find(item => item.id === id).is_active = 0;
+      });
       return res.json({ message: 'Este jogador tem partidas no histórico, então foi arquivado para preservar as estatísticas.' , archived: true });
     }
-    db.prepare('DELETE FROM players WHERE id = ?').run(id);
+    dataStore.transaction(data => {
+      data.players = data.players.filter(item => item.id !== id);
+      data.goals.forEach(goal => { if (goal.player_id === id) goal.player_id = null; });
+    });
     safeRemoveUpload(player.photo_path);
     res.json({ message: 'Jogador excluído com sucesso.', archived: false });
   } catch (error) { next(error); }
@@ -263,28 +294,37 @@ app.post('/api/matches', (req, res, next) => {
       if (!Number.isInteger(playerId) || playerId < 1 || !validSide) throw httpError(400, 'Há um jogador ou time inválido na escalação.');
       if (seen.has(playerId)) throw httpError(400, 'Cada jogador só pode estar em um time por partida.');
       seen.add(playerId);
-      const player = db.prepare('SELECT id, is_active FROM players WHERE id = ?').get(playerId);
+      const player = dataStore.getData().players.find(item => item.id === playerId);
       if (!player || !player.is_active) throw httpError(400, 'Um dos jogadores selecionados não está disponível. Atualize a lista de jogadores.');
     }
     if (opponentType === 'classmates' && (!participants.some(p => p.team_side === 'A') || !participants.some(p => p.team_side === 'B'))) {
       throw httpError(400, 'Cada time precisa ter pelo menos um jogador.');
     }
-    const createMatch = db.transaction(() => {
-      const result = db.prepare('INSERT INTO matches (played_on, opponent_type) VALUES (?, ?)').run(playedOn, opponentType);
-      const matchId = Number(result.lastInsertRowid);
-      const addPlayer = db.prepare('INSERT INTO match_players (match_id, player_id, team_side) VALUES (?, ?, ?)');
-      for (const p of participants) addPlayer.run(matchId, Number(p.player_id), p.team_side);
+    const id = dataStore.transaction(data => {
+      const matchId = data.nextIds.matches++;
+      data.matches.push({ id: matchId, played_on: playedOn, opponent_type: opponentType });
+      for (const participant of participants) {
+        data.match_players.push({
+          id: data.nextIds.match_players++,
+          match_id: matchId,
+          player_id: Number(participant.player_id),
+          team_side: participant.team_side
+        });
+      }
       return matchId;
     });
-    const id = createMatch();
     res.status(201).json({ message: 'Partida criada. Agora você pode registrar os gols.', data: getMatchDetail(id) });
   } catch (error) { next(error); }
 });
 app.delete('/api/matches/:id', (req, res, next) => {
   try {
     const id = validId(req.params.id);
-    const result = db.prepare('DELETE FROM matches WHERE id = ?').run(id);
-    if (!result.changes) throw httpError(404, 'Partida não encontrada.');
+    if (!dataStore.getData().matches.some(match => match.id === id)) throw httpError(404, 'Partida não encontrada.');
+    dataStore.transaction(data => {
+      data.matches = data.matches.filter(match => match.id !== id);
+      data.match_players = data.match_players.filter(participant => participant.match_id !== id);
+      data.goals = data.goals.filter(goal => goal.match_id !== id);
+    });
     res.json({ message: 'Partida e seus gols foram removidos.' });
   } catch (error) { next(error); }
 });
@@ -292,7 +332,8 @@ app.delete('/api/matches/:id', (req, res, next) => {
 app.post('/api/matches/:id/goals', (req, res, next) => {
   try {
     const matchId = validId(req.params.id);
-    const match = db.prepare('SELECT id, opponent_type FROM matches WHERE id = ?').get(matchId);
+    const data = dataStore.getData();
+    const match = data.matches.find(item => item.id === matchId);
     if (!match) throw httpError(404, 'Partida não encontrada.');
     if (!Array.isArray(req.body.entries)) throw httpError(400, 'Informe a quantidade de gols dos jogadores.');
 
@@ -300,7 +341,7 @@ app.post('/api/matches/:id/goals', (req, res, next) => {
     if (!Number.isInteger(opponentGoals) || opponentGoals < 0 || opponentGoals > 300) throw httpError(400, 'A quantidade de gols do adversário deve estar entre 0 e 300.');
     if (match.opponent_type !== 'second_year' && opponentGoals > 0) throw httpError(400, 'O campo de gols totais do 2º Ano só pode ser usado em confrontos contra essa turma.');
 
-    const participants = db.prepare('SELECT player_id, team_side FROM match_players WHERE match_id = ?').all(matchId);
+    const participants = data.match_players.filter(participant => participant.match_id === matchId);
     const participantById = new Map(participants.map(participant => [participant.player_id, participant]));
     const seen = new Set();
     const entries = [];
@@ -321,17 +362,24 @@ app.post('/api/matches/:id/goals', (req, res, next) => {
     if (totalNewGoals < 1) throw httpError(400, 'Informe pelo menos um gol para registrar.');
     if (totalNewGoals > 300) throw httpError(400, 'Registre no máximo 300 gols de uma só vez.');
 
-    const saveGoals = db.transaction(() => {
-      const addGoal = db.prepare('INSERT INTO goals (match_id, team_side, player_id, goal_type) VALUES (?, ?, ?, ?)');
+    dataStore.transaction(nextData => {
+      const addGoal = (teamSide, playerId, goalType) => {
+        nextData.goals.push({
+          id: nextData.nextIds.goals++,
+          match_id: matchId,
+          team_side: teamSide,
+          player_id: playerId,
+          goal_type: goalType
+        });
+      };
       for (const entry of entries) {
-        for (let i = 0; i < entry.normalGoals; i++) addGoal.run(matchId, entry.teamSide, entry.playerId, 'normal');
+        for (let i = 0; i < entry.normalGoals; i++) addGoal(entry.teamSide, entry.playerId, 'normal');
         const opposingSide = entry.teamSide === 'A' ? 'B' : 'A';
-        for (let i = 0; i < entry.ownGoals; i++) addGoal.run(matchId, opposingSide, entry.playerId, 'own_goal');
+        for (let i = 0; i < entry.ownGoals; i++) addGoal(opposingSide, entry.playerId, 'own_goal');
       }
       // Contra o 2º Ano, só guardamos o total de gols do adversário, sem artilheiros externos.
-      for (let i = 0; i < opponentGoals; i++) addGoal.run(matchId, 'B', null, 'normal');
+      for (let i = 0; i < opponentGoals; i++) addGoal('B', null, 'normal');
     });
-    saveGoals();
     res.status(201).json({ message: `${totalNewGoals} ${totalNewGoals === 1 ? 'gol registrado' : 'gols registrados'} com sucesso.`, data: getMatchDetail(matchId) });
   } catch (error) { next(error); }
 });
@@ -339,8 +387,12 @@ app.delete('/api/matches/:matchId/goals/:goalId', (req, res, next) => {
   try {
     const matchId = validId(req.params.matchId);
     const goalId = validId(req.params.goalId);
-    const result = db.prepare('DELETE FROM goals WHERE id = ? AND match_id = ?').run(goalId, matchId);
-    if (!result.changes) throw httpError(404, 'Gol não encontrado nesta partida.');
+    if (!dataStore.getData().goals.some(goal => goal.id === goalId && goal.match_id === matchId)) {
+      throw httpError(404, 'Gol não encontrado nesta partida.');
+    }
+    dataStore.transaction(data => {
+      data.goals = data.goals.filter(goal => goal.id !== goalId || goal.match_id !== matchId);
+    });
     res.json({ message: 'Gol removido.', data: getMatchDetail(matchId) });
   } catch (error) { next(error); }
 });
@@ -376,5 +428,5 @@ app.use((error, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`\n⚽ FutSENAI rodando em http://localhost:${PORT}`);
-  console.log(`Banco de dados: ${path.join(__dirname, 'data', 'futsenai.sqlite')}\n`);
+  console.log(`Dados JSON: ${dataStore.dataFile}\n`);
 });

@@ -5,26 +5,29 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 ## Recursos
 
 - **Painel inicial:** jogadores ativos, partidas registradas, total e média de gols, partidas recentes e artilharia.
-- **Jogadores:** cadastro e edição apenas do nome e foto opcional. As estatísticas individuais incluem partidas, gols, vitórias, empates, derrotas e aproveitamento.
+- **Jogadores:** cadastro e edição do nome, qualidade de 1 a 5 e foto opcional. A qualidade é usada para equilibrar os times sorteados; os cadastros existentes recebem qualidade 3.
+- **Ranking interativo:** na página de estatísticas, clique nos cabeçalhos J, G, V, E, D ou Aprov. para ordenar pelos respectivos números. O padrão é gols, com aproveitamento como critério de desempate.
 - **Preservação do histórico:** jogadores que já participaram de jogos podem ser arquivados e reativados, sem quebrar partidas passadas. Jogadores sem histórico podem ser excluídos.
 - **Partidas internas:** registro da data e escalação, com local fixo como Quadra. Cada jogo tem os times Vermelho e Branco montados de novo; as equipes podem ser desbalanceadas (como 5 contra 6), desde que haja ao menos um jogador em cada lado.
+- **Sorteio de times:** escolha os participantes e sorteie times Vermelho e Branco com quantidade equilibrada e diferença de qualidade variada entre 0 e 2. Se houver quantidades diferentes, o time menor não fica com soma de qualidade inferior; se Jonas estiver selecionado, ele fica no time menor. Cada escalação é revelada com cartas animadas.
 - **Partidas interclasse:** escolha o modo 3º A × 2º Ano. O 3º A tem escalação e gols individuais; o 2º Ano aparece em azul e é registrado somente pelo total de gols, sem cadastrar adversários nem atribuir gols individualmente.
 - **Registro de gols em lote:** informe de uma vez a quantidade de gols regulares e gols contra de cada jogador. Em partidas interclasse, informe também o total de gols do 2º Ano. Os valores são somados ao placar existente.
 - **Placar histórico interclasse:** painel dedicado a vitórias, empates e derrotas do 3º A contra o 2º Ano, além do total de gols marcados por cada turma.
-- **Filtros globais de estatísticas:** disponíveis no painel inicial, na lista de jogadores, no histórico e na página de estatísticas: todas as partidas, somente entre nós (3º A) ou somente interclasse (3º A × 2º Ano). O filtro afeta os números e estatísticas individuais, enquanto o placar histórico interclasse permanece claramente identificado como confronto direto.
+- **Filtros globais de estatísticas:** disponíveis no painel inicial, na lista de jogadores, no histórico e na página de estatísticas: somente entre nós (3º A) ou somente contra o 2º Ano. Os números de cada categoria são exibidos separadamente, enquanto o placar histórico interclasse permanece claramente identificado como confronto direto.
 - **Gol contra:** o jogador que fez o gol contra não recebe crédito de artilharia; o gol entra no placar do time adversário.
 - **Resumo de gols agrupado:** os gols aparecem agrupados por jogador e tipo. O botão de menos desfaz um gol por vez daquele grupo.
-- **Persistência real:** banco de dados SQLite e fotos guardadas localmente, mantidos após reiniciar o servidor.
+- **Persistência real:** jogadores, partidas, escalações e gols são guardados em `public/data/futsenai.json`; as fotos ficam em `public/uploads/`.
+- **Leitura sem API:** quando a aplicação é servida como site estático sem a API Node, os dados publicados continuam disponíveis para consulta em modo somente leitura. Para cadastrar ou editar dados, use `npm start`.
 - **Interface responsiva:** design branco e vermelho para computadores e celulares.
 
 ## Requisitos
 
-- Node.js 22 ou superior (Node.js 24 é compatível com a versão atual do `better-sqlite3`).
+- Node.js 22 ou superior.
 - npm.
 
 ## Como executar
 
-1. Extraia o ZIP e abra a pasta `futsenai` no terminal.
+1. Baixe ou extraia o projeto e abra a pasta `FutSENAI` no terminal.
 2. Instale as dependências:
 
    ```bash
@@ -45,24 +48,27 @@ Para desenvolvimento com reinício automático:
 npm run dev
 ```
 
-O banco SQLite é criado automaticamente em `data/futsenai.sqlite`. As imagens ficam em `public/uploads/`. Faça backup desses locais para guardar registros e fotos.
+Os registros iniciais estão incluídos em `public/data/futsenai.json`. O servidor atualiza esse arquivo ao cadastrar ou alterar jogadores, partidas e gols. As imagens ficam em `public/uploads/`. Para preservar os dados, mantenha ambos no projeto e faça backup antes de editar o JSON manualmente. O salvamento usa substituição atômica do arquivo para evitar deixar um JSON parcialmente escrito se ocorrer uma falha durante a gravação.
 
-### Atualização da versão anterior
+### Dados incluídos no repositório
 
-Ao iniciar com um banco da versão anterior, o sistema migra automaticamente jogadores, fotos, datas das partidas, escalações e gols para o esquema simplificado. Campos antigos que não são mais usados (apelido, posição, número de camisa, duração, nome customizado de time, minuto e tipo detalhado do gol) são removidos. Os registros de gol contra são preservados. Se a base ainda não tiver a coluna `opponent_type`, ela é adicionada automaticamente e as partidas antigas passam a ser classificadas como jogos internos do 3º A.
+O arquivo `public/data/futsenai.json` contém os jogadores e o histórico convertido do banco local usado durante o desenvolvimento, incluindo as partidas, escalações e gols já registrados. As fotos referenciadas por esse arquivo também precisam estar em `public/uploads/`. Novos dados gravados durante o uso ficam no arquivo JSON local; eles só aparecem no GitHub quando forem adicionados, commitados e enviados ao repositório. Como o arquivo inclui nomes e histórico de partidas, considere que esses registros ficarão públicos se o repositório for público.
+
+Quando a API estiver indisponível, a interface tenta carregar esse JSON e habilita o modo somente leitura: painel, jogadores, partidas, detalhes e estatísticas continuam acessíveis, mas os controles de alteração ficam ocultos e os envios são bloqueados. Para usar esse modo, publique o conteúdo da pasta `public/` em um host estático; os caminhos dos recursos e das fotos são relativos para funcionar também sob um subcaminho. Os dados exibidos nesse modo são a cópia incluída na publicação e não são atualizados pelas alterações feitas em uma instância local do servidor.
 
 ## Estrutura
 
 ```text
-futsenai/
-├── database.js             # esquema e migração do SQLite
+FutSENAI/
+├── data-store.js           # leitura e gravação atômica dos dados JSON
 ├── server.js               # API REST, validações e servidor web
 ├── package.json
-├── data/                   # banco criado automaticamente
 └── public/
     ├── index.html
     ├── styles.css
     ├── app.js
+    ├── data/
+    │   └── futsenai.json    # jogadores, partidas, escalações e gols
     └── uploads/             # fotos dos jogadores
 ```
 
@@ -71,15 +77,15 @@ futsenai/
 | Método | Rota | Ação |
 |---|---|---|
 | `GET` | `/api/health` | Estado do servidor |
-| `GET` | `/api/dashboard?scope=all\|internal\|interclass` | Indicadores, partidas recentes, artilharia e histórico interclasse filtrados |
-| `GET` | `/api/players?scope=all\|internal\|interclass` | Jogadores com estatísticas no filtro escolhido; `?includeInactive=true` inclui arquivados |
+| `GET` | `/api/dashboard?scope=internal\|interclass` | Indicadores, partidas recentes, artilharia e histórico interclasse filtrados |
+| `GET` | `/api/players?scope=internal\|interclass` | Jogadores com estatísticas no filtro escolhido; `?includeInactive=true` inclui arquivados |
 | `POST` | `/api/players` | Cria jogador (`multipart/form-data`: `name`, `photo` opcional) |
 | `PUT` | `/api/players/:id` | Atualiza nome e/ou foto |
 | `PATCH` | `/api/players/:id/archive` | Arquiva ou reativa jogador |
 | `DELETE` | `/api/players/:id` | Exclui ou arquiva conforme o histórico |
-| `GET` | `/api/matches?scope=all\|internal\|interclass` | Lista partidas e placares filtrados |
+| `GET` | `/api/matches?scope=internal\|interclass` | Lista partidas e placares filtrados |
 | `GET` | `/api/matches/:id` | Detalhes, escalações e gols agrupáveis |
-| `GET` | `/api/stats?scope=all\|internal\|interclass` | Estatísticas agregadas e ranking filtrados, mais o histórico interclasse |
+| `GET` | `/api/stats?scope=internal\|interclass` | Estatísticas e ranking da categoria escolhida, mais o histórico interclasse |
 | `POST` | `/api/matches` | Cria partida (`played_on`, `participants`) |
 | `DELETE` | `/api/matches/:id` | Exclui partida e gols relacionados |
 | `POST` | `/api/matches/:id/goals` | Registra quantidades por jogador (`entries`) |

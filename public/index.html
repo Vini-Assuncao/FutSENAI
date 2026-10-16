@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#d7193f">
   <meta name="description" content="FutSENAI — registre partidas, monte times, acompanhe gols e compare estatísticas da sua turma.">
+  <link rel="icon" href="logo_futsenai.png">
   <title>FutSENAI — Futebol entre amigos</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="#dashboard" aria-label="FutSENAI - início">
-        <span class="brand-mark">📛</span>
+        <span class="brand-mark">
+          <img src="logo_futsenai_branca.png" alt="FutSENAI" class="brand-icon">
+        </span>
         <span class="brand-copy"><strong>Fut<span>SENAI</span></strong><small>FUTEBOL ENTRE AMIGOS</small></span>
       </a>
       <div class="side-label">MENU PRINCIPAL</div>
@@ -27,7 +30,6 @@
           <div class="season-ball">🏆</div>
           <div><strong>Temporada em andamento</strong><p>Cada jogo vale uma história.</p></div>
         </div>
-        <div class="sidebar-foot"><span class="status-dot"></span> Banco de dados local conectado</div>
       </div>
     </aside>
 
@@ -38,14 +40,15 @@
         <div class="topbar-actions"><div class="today-chip"><span>◷</span><span id="todayLabel">Hoje</span></div><button class="avatar-button" id="quickAddPlayer" title="Cadastrar jogador">＋</button></div>
       </header>
 
+      <div class="read-only-notice" id="readOnlyNotice" role="status" hidden>Modo somente leitura: dados carregados do arquivo JSON publicado. Para editar, inicie o servidor com <strong>npm start</strong>.</div>
       <div class="page-content" id="pageContent">
         <div class="loading-state"><div class="spinner"></div><p>Preparando o campo...</p></div>
       </div>
-      <footer class="app-footer"><span>FutSENAI <b>•</b> Feito para a resenha depois do jogo.</span><span>Seus registros ficam no banco local desta aplicação.</span></footer>
+      <footer class="app-footer"><span>FutSENAI <b>•</b> Feito para a resenha depois do jogo.</span><span id="storageStatus">Dados salvos nesta aplicação.</span></footer>
     </main>
   </div>
   <div class="modal-root" id="modalRoot" aria-live="polite"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <script src="/app.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
