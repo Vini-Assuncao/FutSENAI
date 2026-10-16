@@ -4,20 +4,20 @@
     "players": 15,
     "matches": 7,
     "match_players": 50,
-    "goals": 177
+    "goals": 178
   },
   "players": [
     {
       "id": 1,
       "name": "Gabriel",
-      "photo_path": null,
+      "photo_path": "/uploads/422e12db-2cbc-4116-a4cf-596c8126b0ac.png",
       "is_active": 1,
       "quality": 2
     },
     {
       "id": 2,
       "name": "Thiago",
-      "photo_path": "/uploads/109b305a-97e0-4fac-936d-57ae919d1f0c.jpg",
+      "photo_path": "/uploads/7adcd738-c114-4e8c-8aa5-24db63a728e5.png",
       "is_active": 1,
       "quality": 5
     },
@@ -31,14 +31,14 @@
     {
       "id": 4,
       "name": "Assunção",
-      "photo_path": null,
+      "photo_path": "/uploads/6adc75a3-dd0b-4b62-b638-efed486d64e2.png",
       "is_active": 1,
       "quality": 3
     },
     {
       "id": 5,
       "name": "Jonas",
-      "photo_path": null,
+      "photo_path": "/uploads/e6a403cc-8674-4af3-9b00-e05e786fb13a.png",
       "is_active": 1,
       "quality": 3
     },
@@ -52,35 +52,35 @@
     {
       "id": 7,
       "name": "Dutra",
-      "photo_path": null,
+      "photo_path": "/uploads/3548b843-8f4d-4755-beb0-f5181c51952b.png",
       "is_active": 1,
       "quality": 3
     },
     {
       "id": 8,
       "name": "João",
-      "photo_path": null,
+      "photo_path": "/uploads/dbb27a78-dc66-4608-a190-e6779a952c4b.png",
       "is_active": 1,
       "quality": 4
     },
     {
       "id": 9,
       "name": "Muzy",
-      "photo_path": null,
+      "photo_path": "/uploads/8ee07653-108d-41a3-9888-758955ba51d7.png",
       "is_active": 1,
       "quality": 3
     },
     {
       "id": 10,
       "name": "Mateus",
-      "photo_path": null,
+      "photo_path": "/uploads/9ba461a4-0433-4e00-a094-a9798f3fcd37.png",
       "is_active": 1,
       "quality": 1
     },
     {
       "id": 11,
       "name": "Enzo",
-      "photo_path": null,
+      "photo_path": "/uploads/64989a2b-92f9-4761-b798-2fd652a08dba.png",
       "is_active": 1,
       "quality": 4
     }
@@ -233,37 +233,43 @@
       "id": 44,
       "match_id": 6,
       "player_id": 7,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 45,
       "match_id": 6,
       "player_id": 11,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 46,
       "match_id": 6,
       "player_id": 3,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 47,
       "match_id": 6,
       "player_id": 8,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 48,
       "match_id": 6,
       "player_id": 10,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 49,
       "match_id": 6,
       "player_id": 9,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     }
   ],
   "goals": [
@@ -588,6 +594,13 @@
       "team_side": "B",
       "player_id": null,
       "goal_type": "normal"
+    },
+    {
+      "id": 177,
+      "match_id": 6,
+      "team_side": "A",
+      "player_id": null,
+      "goal_type": "own_goal"
     }
   ]
 }

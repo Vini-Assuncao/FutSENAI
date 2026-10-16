@@ -88,8 +88,9 @@ FutSENAI/
 | `GET` | `/api/stats?scope=internal\|interclass` | Estatísticas e ranking da categoria escolhida, mais o histórico interclasse |
 | `POST` | `/api/matches` | Cria partida (`played_on`, `participants`) |
 | `DELETE` | `/api/matches/:id` | Exclui partida e gols relacionados |
-| `POST` | `/api/matches/:id/goals` | Registra quantidades por jogador (`entries`) |
+| `POST` | `/api/matches/:id/goals` | Registra gols e assistências por jogador (`entries`) |
 | `DELETE` | `/api/matches/:matchId/goals/:goalId` | Remove um gol do histórico |
+| `DELETE` | `/api/matches/:matchId/assists/:playerId` | Remove uma assistência do jogador naquela partida |
 
 Exemplo de criação de partida:
 
@@ -105,16 +106,16 @@ Exemplo de criação de partida:
 }
 ```
 
-Exemplo de registro em lote de gols (as quantidades são somadas ao placar atual):
+Exemplo de registro em lote de gols e assistências (as quantidades são somadas aos registros atuais):
 
 ```json
 {
   "entries": [
-    { "player_id": 1, "goals": 3, "own_goals": 0 },
-    { "player_id": 2, "goals": 1, "own_goals": 1 },
-    { "player_id": 3, "goals": 2, "own_goals": 0 }
+    { "player_id": 1, "goals": 3, "assists": 1, "own_goals": 0 },
+    { "player_id": 2, "goals": 1, "assists": 0, "own_goals": 1 },
+    { "player_id": 3, "goals": 2, "assists": 2, "own_goals": 0 }
   ]
 }
 ```
 
-`opponent_type` aceita `classmates` (jogo interno) ou `second_year` (interclasse contra o 2º Ano). `team_side` aceita `A` (Time Vermelho / 3º A) ou `B` (Time Branco / 2º Ano). Em partidas interclasse, todos os participantes devem usar `team_side: "A"`. Em `entries`, `goals` são gols regulares e `own_goals` são gols contra, creditados no placar adversário. Para lançar gols do 2º Ano sem artilharia individual, envie `opponent_goals` junto com `entries`, por exemplo `{ "entries": [{ "player_id": 1, "goals": 2, "own_goals": 0 }], "opponent_goals": 3 }`.
+`opponent_type` aceita `classmates` (jogo interno) ou `second_year` (interclasse contra o 2º Ano). `team_side` aceita `A` (Time Vermelho / 3º A) ou `B` (Time Branco / 2º Ano). Em partidas interclasse, todos os participantes devem usar `team_side: "A"`. Em `entries`, `goals` são gols regulares, `assists` são assistências e `own_goals` são gols contra, creditados no placar adversário. Para registrar gols agregados do 2º Ano, envie `opponent_goals` (gols do adversário) e `opponent_own_goals` (gols contra do adversário, creditados ao 3º A) junto com `entries`, por exemplo `{ "entries": [{ "player_id": 1, "goals": 2, "assists": 0, "own_goals": 0 }], "opponent_goals": 3, "opponent_own_goals": 1 }`.

@@ -46,7 +46,8 @@ function validateData(data) {
   const participantKeys = new Set();
   for (const participant of data.match_players) {
     const key = `${participant.match_id}:${participant.player_id}`;
-    if (!matchIds.has(participant.match_id) || !playerIds.has(participant.player_id) || !['A', 'B'].includes(participant.team_side) || participantKeys.has(key)) {
+    if (!matchIds.has(participant.match_id) || !playerIds.has(participant.player_id) || !['A', 'B'].includes(participant.team_side) || participantKeys.has(key)
+      || (participant.assists !== undefined && (!Number.isInteger(participant.assists) || participant.assists < 0))) {
       throw new Error(`Escalação com referência inválida no arquivo de dados: ${dataFile}`);
     }
     participantKeys.add(key);

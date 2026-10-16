@@ -20,7 +20,7 @@ const modalRoot = document.getElementById('modalRoot');
 const toastStack = document.getElementById('toastStack');
 const readOnlyNotice = document.getElementById('readOnlyNotice');
 const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'Partidas', stats: 'Estatísticas', matchDetail: 'Detalhes da partida' };
-const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-match', 'new-goal', 'delete-match', 'delete-goal']);
+const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-match', 'new-goal', 'delete-match', 'delete-goal', 'delete-assist']);
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -140,11 +140,13 @@ function staticPlayerStats(player, scope, data) {
   }).length;
   const goals = data.goals.filter(goal => goal.player_id === player.id && goal.goal_type === 'normal'
     && matchById.get(goal.match_id)?.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates')).length;
+  const assists = played.reduce((sum, participant) => sum + (Number(participant.assists) || 0), 0);
   const losses = played.length - wins - draws;
   return {
     ...player,
     matches_played: played.length,
     goals,
+    assists,
     wins,
     draws,
     losses,
@@ -172,7 +174,7 @@ function staticMatchDetail(matchId, data) {
     players: data.match_players.filter(participant => participant.match_id === matchId)
       .map(participant => {
         const player = playersById.get(participant.player_id);
-        return { id: player.id, name: player.name, photo_path: player.photo_path, is_active: player.is_active, team_side: participant.team_side };
+        return { id: player.id, name: player.name, photo_path: player.photo_path, is_active: player.is_active, team_side: participant.team_side, assists: Number(participant.assists) || 0 };
       })
       .sort((left, right) => left.team_side.localeCompare(right.team_side) || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' })),
     goals: data.goals.filter(goal => goal.match_id === matchId).sort((left, right) => left.id - right.id)
@@ -192,8 +194,8 @@ function staticApi(url, method) {
     const matches = staticMatchList(scope, data);
     const players = data.players.filter(player => player.is_active).map(player => staticPlayerStats(player, scope, data));
     const totalGoals = matches.reduce((sum, match) => sum + match.total_goals, 0);
-    const topScorers = [...players].filter(player => player.goals > 0 || player.matches_played > 0)
-      .sort((left, right) => right.goals - left.goals || right.matches_played - left.matches_played || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' })).slice(0, 5);
+    const topScorers = [...players].filter(player => player.goals > 0 || player.assists > 0 || player.matches_played > 0)
+    .sort((left, right) => right.goals - left.goals || right.assists - left.assists || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' })).slice(0, 5);
     return {
       scope,
       summary: { activePlayers: data.players.filter(player => player.is_active).length, totalMatches: matches.length, totalGoals, averageGoals: matches.length ? Number((totalGoals / matches.length).toFixed(1)) : 0 },
@@ -214,8 +216,8 @@ function staticApi(url, method) {
   if (endpoint.pathname.endsWith('/api/stats')) {
     const matches = staticMatchList(scope, data);
     const players = data.players.map(player => staticPlayerStats(player, scope, data))
-      .filter(player => player.matches_played > 0 || player.goals > 0)
-      .sort((left, right) => right.goals - left.goals || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
+      .filter(player => player.matches_played > 0 || player.goals > 0 || player.assists > 0)
+      .sort((left, right) => right.goals - left.goals || right.assists - left.assists || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
     const totalGoals = matches.reduce((sum, match) => sum + match.total_goals, 0);
     return {
       scope,
@@ -317,7 +319,7 @@ function renderMatchRow(match) {
 }
 function scorerRow(player, index) {
   const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><strong>${esc(player.nickname || player.name)}</strong><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} ${player.goals === 1 ? 'gol' : 'gols'}</div></div>`;
+  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><strong>${esc(player.nickname || player.name)}</strong><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} gols</div></div>`;
 }
 async function renderDashboard() {
   setLoading('Atualizando o placar da turma...');
@@ -329,7 +331,7 @@ async function renderDashboard() {
   const scorerHtml = result.topScorers.length ? result.topScorers.map(scorerRow).join('') : `<div class="empty-inline"><strong>Nenhuma estatística neste filtro</strong>Registre gols ou selecione outro tipo de partida.</div>`;
   const recentHtml = result.recentMatches.length ? result.recentMatches.map(renderMatchRow).join('') : `<div class="empty-inline"><strong>Nenhuma partida neste filtro</strong>Registre um jogo para ver o placar por aqui.</div>`;
   pageContent.innerHTML = `
-    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO AO CAMPO</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button><button class="btn btn-primary" data-action="new-match">＋ Registrar partida</button></div></section>
+    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO À QUADRA</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button><button class="btn btn-primary" data-action="new-match">＋ Registrar partida</button></div></section>
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
     <section class="stats-grid">
       ${statCard('Jogadores ativos', s.activePlayers, '♟', 'Elenco disponível do 3º A')}
@@ -420,24 +422,34 @@ function renderStatsContent() {
   if (!result) return;
   const a = result.aggregate;
   const ranking = [...result.players].sort((left, right) => {
-    const difference = (Number(left[state.statsSort]) || 0) - (Number(right[state.statsSort]) || 0);
+    const value = player => state.statsSort === 'ga' ? player.goals + player.assists : Number(player[state.statsSort]) || 0;
+    const difference = value(left) - value(right);
     if (difference) return difference * (state.statsSortDirection === 'desc' ? -1 : 1);
     if (state.statsSort === 'goals') {
-      const winRateDifference = (Number(right.win_rate) || 0) - (Number(left.win_rate) || 0);
-      if (winRateDifference) return winRateDifference;
+      const assistDifference = right.assists - left.assists;
+      if (assistDifference) return assistDifference;
+      const winDifference = right.wins - left.wins;
+      if (winDifference) return winDifference;
+    } else if (state.statsSort === 'ga') {
+      const goalDifference = right.goals - left.goals;
+      if (goalDifference) return goalDifference;
+      const assistDifference = right.assists - left.assists;
+      if (assistDifference) return assistDifference;
+      const winDifference = right.wins - left.wins;
+      if (winDifference) return winDifference;
     }
     return left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' });
   });
   const tableRows = ranking.length ? ranking.map((p, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<span>${esc(p.name)}</span></div></td><td class="num">${p.matches_played}</td><td class="num">${p.goals}</td><td class="num">${p.wins}</td><td class="num">${p.draws}</td><td class="num">${p.losses}</td><td class="num">${p.win_rate}%</td></tr>`;
+    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<span>${esc(p.name)}</span></div></td><td class="num">${p.matches_played}</td><td class="num">${p.goals}</td><td class="num">${p.assists}</td><td class="num">${p.wins}</td><td class="num">${p.losses}</td><td class="num">${p.goals + p.assists}</td></tr>`;
   }).join('') : `<tr><td colspan="7"><div class="empty-inline"><strong>Sem estatísticas neste filtro</strong>Registre partidas e gols, ou selecione outro tipo de partida.</div></td></tr>`;
-  const top = [...result.players].sort((left, right) => right.goals - left.goals || right.win_rate - left.win_rate || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }))[0];
+  const top = [...result.players].sort((left, right) => right.goals - left.goals || right.assists - left.assists || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }))[0];
   pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">NÚMEROS DO JOGO</div><h1>Estatísticas<span style="color:var(--red)">.</span></h1><p>Veja a evolução da turma, quem decide e como cada jogador contribui.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="go-matches">Ver partidas</button></div></section>
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
     <section class="stats-grid">${statCard('Partidas no recorte', a.matches, '⚑', 'De acordo com o filtro')}${statCard('Gols no recorte', a.goals, '⚽︎', 'Todos os gols desses jogos')}${statCard('Média por partida', a.averageGoals, '↗', 'Gols por jogo considerado')}${statCard('Empates', a.draws, '＝', 'Jogos que terminaram iguais')}</section>
     ${rivalryPanel(a.secondYearRivalry)}
-    <div class="stats-page-grid"><article class="panel"><div class="panel-head"><div><h2 class="panel-title">Ranking dos jogadores</h2><div class="panel-subtitle">Artilharia e desempenho no recorte selecionado</div></div></div><div class="table-wrap"><table class="stats-table"><thead><tr><th>Jogador</th>${statsSortHeader('J', 'matches_played')}${statsSortHeader('G', 'goals')}${statsSortHeader('V', 'wins')}${statsSortHeader('E', 'draws')}${statsSortHeader('D', 'losses')}${statsSortHeader('Aprov.', 'win_rate')}</tr></thead><tbody>${tableRows}</tbody></table></div></article>
+    <div class="stats-page-grid"><article class="panel"><div class="panel-head"><div><h2 class="panel-title">Ranking dos jogadores</h2><div class="panel-subtitle">Gols, assistências e desempenho, clique nas colunas para ordenar</div></div></div><div class="table-wrap"><table class="stats-table"><thead><tr><th>Jogador</th>${statsSortHeader('Jogos', 'matches_played')}${statsSortHeader('Gols', 'goals')}${statsSortHeader('Assistências', 'assists')}${statsSortHeader('Vitórias', 'wins')}${statsSortHeader('Derrotas', 'losses')}${statsSortHeader('G/A', 'ga')}</tr></thead><tbody>${tableRows}</tbody></table></div></article>
     <div><article class="stat-hero"><div class="eyebrow">ARTILHEIRO</div><strong>${top ? `${esc(top.name)} - ${top.goals} ${top.goals === 1 ? 'gol' : 'gols'}` : '—'}</strong><p>${top ? `${esc(top.name)} lidera a artilharia dentro do filtro selecionado.` : 'Quando houver gols nesse recorte, o destaque aparece aqui.'}</p></article><article class="panel" style="margin-top:17px"><div class="panel-head"><div><h2 class="panel-title">Resumo do histórico</h2><div class="panel-subtitle">Números das partidas filtradas</div></div></div><div class="stats-metric-list"><div class="stats-metric"><span>Jogadores com estatísticas</span><strong>${ranking.length}</strong></div><div class="stats-metric"><span>Média de gols por partida</span><strong>${a.averageGoals}</strong></div><div class="stats-metric"><span>Partidas empatadas</span><strong>${a.draws}</strong></div><div class="stats-metric"><span>Total de partidas</span><strong>${a.matches}</strong></div></div></article></div></div>`;
 }
 async function renderMatchDetail() {
@@ -458,8 +470,9 @@ async function renderMatchDetail() {
   }
   const goals = groupedGoals.size ? [...groupedGoals.values()].map(goal => {
     const aggregateOpponentGoal = interclass && !goal.player_id && goal.team_side === 'B';
-    const author = aggregateOpponentGoal ? 'Gols totais do 2º Ano' : goal.player_name ? esc(goal.player_name) : 'Autor não informado';
-    const description = aggregateOpponentGoal ? 'Total agregado do adversário · sem artilharia individual' : `${goalTypeLabel(goal.goal_type)} · ponto para ${goal.team_side === 'A' ? esc(match.team_a_name) : esc(match.team_b_name)}`;
+    const opponentOwnGoal = interclass && !goal.player_id && goal.team_side === 'A' && goal.goal_type === 'own_goal';
+    const author = aggregateOpponentGoal ? 'Gols totais do 2º Ano' : opponentOwnGoal ? 'Gol contra do 2º Ano' : goal.player_name ? esc(goal.player_name) : 'Autor não informado';
+    const description = aggregateOpponentGoal || opponentOwnGoal ? 'Total agregado do adversário · sem identificação individual' : `${goalTypeLabel(goal.goal_type)} · ponto para ${goal.team_side === 'A' ? esc(match.team_a_name) : esc(match.team_b_name)}`;
     return `<div class="goal-event goal-event-counted ${aggregateOpponentGoal ? 'aggregate-opponent-goal' : ''}">
       <div class="goal-total-badge">${goal.count > 1 ? `×${goal.count}` : '⚽︎'}</div>
       <div class="goal-event-main"><strong>${author}${goal.goal_type === 'own_goal' ? ' · Gol contra' : ''}</strong><span>${description}</span></div>
@@ -472,8 +485,10 @@ async function renderMatchDetail() {
     return players.map(player => {
       const playerGoals = match.goals.filter(goal => goal.player_id === player.id && goal.goal_type === 'normal').length;
       const playerOwnGoals = match.goals.filter(goal => goal.player_id === player.id && goal.goal_type === 'own_goal').length;
-      const statText = [playerGoals ? `${playerGoals} ${playerGoals === 1 ? 'gol' : 'gols'}` : '', playerOwnGoals ? `${playerOwnGoals} contra` : ''].filter(Boolean).join(' · ');
-      return `<div class="roster-player">${avatar(player)}<div class="roster-player-info"><strong>${esc(player.name)}</strong><small>${statText || 'Na escalação'}</small></div></div>`;
+      const assists = Number(player.assists) || 0;
+      const statText = [playerGoals ? `${playerGoals} ${playerGoals === 1 ? 'gol' : 'gols'}` : '', assists ? `${assists} ${assists === 1 ? 'assistência' : 'assistências'}` : '', playerOwnGoals ? `${playerOwnGoals} contra` : ''].filter(Boolean).join(' · ');
+      const removeAssist = assists ? `<button class="assist-delete" data-action="delete-assist" data-match-id="${match.id}" data-id="${player.id}" title="Desfazer uma assistência" aria-label="Desfazer uma assistência de ${esc(player.name)}">−</button>` : '';
+      return `<div class="roster-player">${avatar(player)}<div class="roster-player-info"><strong>${esc(player.name)}</strong><small>${statText || 'Na escalação'}</small></div>${removeAssist}</div>`;
     }).join('') || '<div class="empty-inline">Sem jogadores nesta equipe</div>';
   };
 
@@ -484,7 +499,7 @@ async function renderMatchDetail() {
   pageContent.innerHTML = `<div class="detail-header"><button class="back-button" data-action="back-matches" aria-label="Voltar">←</button><div><div class="eyebrow">${interclass ? 'SÚMULA INTERCLASSE' : 'SÚMULA DA PARTIDA'}</div><h1 style="font:800 25px var(--display);margin:0">${interclass ? '3º A × 2º Ano' : 'Partida'} · ${shortDate(match.played_on, true)}<span style="color:var(--red)">.</span></h1></div></div>
     <section class="detail-match-hero ${interclass ? 'detail-interclass' : ''}"><div class="match-card-top"><span><strong>${fullDate(match.played_on)}</strong> · Quadra</span><span class="match-kind ${interclass ? 'interclass' : ''}">${interclass ? `INTERCLASSE · ${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'} do 3º A` : `ENTRE NÓS · ${match.total_players} ${match.total_players === 1 ? 'jogador' : 'jogadores'}`}</span></div><div class="detail-scoreboard"><div class="detail-team"><div class="team-large-icon ${teamIconClass(match, 'A')}">●</div><strong>${esc(match.team_a_name)}</strong><small>${interclass ? `${match.players_a} jogadores escalados` : `${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'}`}</small></div><div><div class="detail-score">${match.score_a}<span>:</span>${match.score_b}</div><div class="detail-result-note">${esc(outcomeLabel(match))}</div></div><div class="detail-team"><div class="team-large-icon ${teamIconClass(match, 'B')}">●</div><strong>${esc(match.team_b_name)}</strong><small>${interclass ? 'Placar total do adversário' : `${match.players_b} ${match.players_b === 1 ? 'jogador' : 'jogadores'}`}</small></div></div></section>
     <div class="detail-columns"><article class="roster-panel"><div class="panel-head"><div><h2 class="panel-title">${interclass ? 'Escalação do 3º A' : 'Jogadores de cada time'}</h2><div class="panel-subtitle">${interclass ? 'Somente os jogadores da nossa turma têm estatísticas individuais' : 'As equipes são montadas novamente em cada partida'}</div></div><span class="goal-count">${match.total_players} jogadores</span></div><div class="team-roster-grid ${interclass ? 'interclass-roster-grid' : ''}">${rosterMarkup}</div></article>
-    <article class="goals-panel"><div class="panel-head"><div><h2 class="panel-title">Gols da partida</h2><div class="panel-subtitle">${interclass ? 'Gols individuais do 3º A e total agregado do 2º Ano' : 'Os gols aparecem agrupados por jogador; use − para desfazer um gol'}</div></div><button class="btn btn-primary btn-small" data-action="new-goal">＋ Registrar gols</button></div><div class="goal-timeline">${goals}</div></article></div>
+    <article class="goals-panel"><div class="panel-head"><div><h2 class="panel-title">Gols da partida</h2><div class="panel-subtitle">${interclass ? 'Gols individuais do 3º A e total agregado do 2º Ano' : 'Os gols aparecem agrupados por jogador; use − para desfazer um gol'}</div></div><button class="btn btn-primary btn-small" data-action="new-goal">＋ Registrar gols e assist.</button></div><div class="goal-timeline">${goals}</div></article></div>
     <div class="detail-actions"><button class="btn btn-secondary" data-action="back-matches">← Voltar ao histórico</button><button class="btn btn-danger" data-action="delete-match" data-id="${match.id}">Excluir partida</button></div>`;
 }
 function modal(title, subtitle, body, footer, wide = false) {
@@ -798,14 +813,15 @@ function openGoalModal() {
     <div class="goal-entry-row" data-player-id="${player.id}">
       <div class="goal-entry-player">${avatar(player, 'small')}<strong>${esc(player.name)}</strong></div>
       <label class="goal-count-field"><span>Gols</span><input type="number" min="0" max="99" value="0" data-goal-kind="goals" aria-label="Gols de ${esc(player.name)}"></label>
+      <label class="goal-count-field"><span>Assist.</span><input type="number" min="0" max="99" value="0" data-goal-kind="assists" aria-label="Assistências de ${esc(player.name)}"></label>
       <label class="goal-count-field own-goal-field"><span>Contra</span><input type="number" min="0" max="99" value="0" data-goal-kind="own_goals" aria-label="Gols contra de ${esc(player.name)}"></label>
     </div>`).join('') || '<div class="empty-inline">Nenhum jogador nesta equipe.</div>';
   const teamRows = interclass
-    ? `<section class="goal-entry-team red-team"><div class="goal-entry-team-heading"><span class="team-color-dot"></span><strong>Jogadores do 3º A</strong></div>${playersFor('A')}</section><section class="goal-entry-team blue-team"><div class="goal-entry-team-heading"><span class="team-color-dot blue"></span><strong>2º Ano · total de gols</strong></div><div class="opponent-goals-input"><p>Informe quantos gols o 2º Ano marcou nesta etapa. Não é necessário cadastrar os jogadores deles.</p><label class="goal-count-field"><span>Gols do 2º Ano</span><input id="opponentGoals" name="opponent_goals" type="number" min="0" max="300" value="0" aria-label="Gols totais do 2º Ano"></label></div></section>`
+    ? `<section class="goal-entry-team red-team"><div class="goal-entry-team-heading"><span class="team-color-dot"></span><strong>Jogadores do 3º A</strong></div>${playersFor('A')}</section><section class="goal-entry-team blue-team"><div class="goal-entry-team-heading"><span class="team-color-dot blue"></span><strong>2º Ano · gols da equipe</strong></div><div class="opponent-goals-input"><p>Informe os gols do 2º Ano e quantos foram gols contra, que contam para o 3º A. Não é necessário cadastrar os jogadores deles.</p><label class="goal-count-field"><span>Gols do 2º Ano</span><input id="opponentGoals" name="opponent_goals" type="number" min="0" max="300" value="0" aria-label="Gols do 2º Ano"></label><label class="goal-count-field"><span>Gols contra do 2º Ano</span><input id="opponentOwnGoals" name="opponent_own_goals" type="number" min="0" max="300" value="0" aria-label="Gols contra do 2º Ano"></label></div></section>`
     : `<section class="goal-entry-team red-team"><div class="goal-entry-team-heading"><span class="team-color-dot"></span><strong>${esc(match.team_a_name)}</strong></div>${playersFor('A')}</section><section class="goal-entry-team white-team"><div class="goal-entry-team-heading"><span class="team-color-dot dark"></span><strong>${esc(match.team_b_name)}</strong></div>${playersFor('B')}</section>`;
-  const body = `<form id="goalForm"><div class="modal-body"><div class="goal-score-preview ${interclass ? 'goal-score-interclass' : ''}"><div class="score-side"><strong>${esc(match.team_a_name)}</strong></div><div class="score-big">${match.score_a}<span class="score-separator">:</span>${match.score_b}</div><div class="score-side"><strong>${esc(match.team_b_name)}</strong></div></div><p class="goal-form-instructions">${interclass ? 'Registre os gols de cada jogador do 3º A e informe o total marcado pelo 2º Ano. As quantidades serão somadas ao placar atual.' : 'Informe quantos gols novos cada jogador fez. Os valores são somados ao placar atual; não precisa lançar os gols um por um.'}</p><div class="goal-count-legend"><span>${interclass ? 'Gols individuais do 3º A' : 'Gols feitos pelo jogador'}</span><span>${interclass ? 'Gols totais do 2º Ano' : 'Gol contra (conta para o adversário)'}</span></div><div class="goal-entry-teams ${interclass ? 'goal-entry-interclass' : ''}">${teamRows}</div></div></form>`;
-  const footer = `<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="goalForm" class="btn btn-primary">Salvar gols</button>`;
-  modal('Registrar gols', interclass ? 'Lance os gols do 3º A e o total do 2º Ano.' : 'Lance a quantidade de gols por jogador de uma só vez.', body, footer, true);
+  const body = `<form id="goalForm"><div class="modal-body"><div class="goal-score-preview ${interclass ? 'goal-score-interclass' : ''}"><div class="score-side"><strong>${esc(match.team_a_name)}</strong></div><div class="score-big">${match.score_a}<span class="score-separator">:</span>${match.score_b}</div><div class="score-side"><strong>${esc(match.team_b_name)}</strong></div></div><p class="goal-form-instructions">${interclass ? 'Registre gols e assistências dos jogadores do 3º A e os gols do 2º Ano, incluindo gols contra que contam para o 3º A. Os valores serão somados aos registros atuais.' : 'Informe gols, assistências e gols contra de cada jogador. Os valores serão somados aos registros atuais.'}</p><div class="goal-count-legend"><span>Gols</span><span>Assistências</span><span>${interclass ? 'Gols do 2º Ano (inclua gols contra)' : 'Gol contra (conta para o adversário)'}</span></div><div class="goal-entry-teams ${interclass ? 'goal-entry-interclass' : ''}">${teamRows}</div></div></form>`;
+  const footer = `<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="goalForm" class="btn btn-primary">Salvar estatísticas</button>`;
+  modal('Registrar gols e assistências', interclass ? 'Lance os gols e assistências do 3º A e o total do 2º Ano.' : 'Lance gols e assistências por jogador de uma só vez.', body, footer, true);
 }
 async function refreshForCurrent() {
   closeModal();
@@ -855,18 +871,20 @@ async function submitGoalForm(form) {
   const entries = [...modalRoot.querySelectorAll('.goal-entry-row')].map(row => ({
     player_id: Number(row.dataset.playerId),
     goals: Number(row.querySelector('[data-goal-kind="goals"]').value || 0),
+    assists: Number(row.querySelector('[data-goal-kind="assists"]').value || 0),
     own_goals: Number(row.querySelector('[data-goal-kind="own_goals"]').value || 0)
   }));
   const opponentGoals = Number(modalRoot.querySelector('#opponentGoals')?.value || 0);
-  if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Salvando gols...'; }
+  const opponentOwnGoals = Number(modalRoot.querySelector('#opponentOwnGoals')?.value || 0);
+  if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Salvando estatísticas...'; }
   try {
-    const result = await api(`/api/matches/${state.selectedMatch}/goals`, jsonOptions('POST', { entries, opponent_goals: opponentGoals }));
+    const result = await api(`/api/matches/${state.selectedMatch}/goals`, jsonOptions('POST', { entries, opponent_goals: opponentGoals, opponent_own_goals: opponentOwnGoals }));
     toast(result.message || 'Gols registrados.');
     closeModal();
     await renderMatchDetail();
   } catch (error) {
     toast(error.message, 'error');
-    if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Salvar gols'; }
+    if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Salvar estatísticas'; }
   }
 }
 async function deletePlayer(id, archive = false) {
@@ -895,6 +913,13 @@ async function deleteGoal(matchId, goalId) {
   try {
     const result = await api(`/api/matches/${matchId}/goals/${goalId}`, { method: 'DELETE' });
     toast('Gol removido.');
+    await renderMatchDetail();
+  } catch (error) { toast(error.message, 'error'); }
+}
+async function deleteAssist(matchId, playerId) {
+  try {
+    const result = await api(`/api/matches/${matchId}/assists/${playerId}`, { method: 'DELETE' });
+    toast(result.message || 'Assistência removida.');
     await renderMatchDetail();
   } catch (error) { toast(error.message, 'error'); }
 }
@@ -942,6 +967,7 @@ document.addEventListener('click', async event => {
     else if (action === 'open-match') { state.selectedMatch = id; state.view = 'matchDetail'; updateChrome(); await renderMatchDetail(); }
     else if (action === 'delete-match') await deleteMatch(id);
     else if (action === 'delete-goal') await deleteGoal(Number(button.dataset.matchId), id);
+    else if (action === 'delete-assist') await deleteAssist(Number(button.dataset.matchId), id);
     else if (action === 'back-matches' || action === 'go-matches') await navigate('matches');
     else if (action === 'go-players') await navigate('players');
     else if (action === 'go-stats') await navigate('stats');
