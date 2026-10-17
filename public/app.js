@@ -278,10 +278,15 @@ function updateChrome() {
   document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(date).replace('.', '');
   if (state.dashboard) document.getElementById('navPlayerCount').textContent = state.dashboard.summary.activePlayers;
 }
+function setSidebarOpen(isOpen) {
+  document.getElementById('sidebar').classList.toggle('open', isOpen);
+  document.body.classList.toggle('sidebar-open', isOpen);
+  document.getElementById('mobileMenu').setAttribute('aria-expanded', String(isOpen));
+}
 async function navigate(view) {
   state.view = view;
   state.selectedMatch = null;
-  document.getElementById('sidebar').classList.remove('open');
+  setSidebarOpen(false);
   updateChrome();
   await renderCurrent();
 }
@@ -475,9 +480,10 @@ async function renderMatchDetail() {
   const goals = groupedGoals.size ? [...groupedGoals.values()].map(goal => {
     const aggregateOpponentGoal = interclass && !goal.player_id && goal.team_side === 'B';
     const opponentOwnGoal = interclass && !goal.player_id && goal.team_side === 'A' && goal.goal_type === 'own_goal';
+    const goalSideClass = goal.team_side === 'A' ? 'goal-side-red' : interclass ? 'goal-side-blue' : 'goal-side-gray';
     const author = aggregateOpponentGoal ? 'Gols totais do 2º Ano' : opponentOwnGoal ? 'Gol contra do 2º Ano' : goal.player_name ? esc(goal.player_name) : 'Autor não informado';
     const description = aggregateOpponentGoal || opponentOwnGoal ? 'Total agregado do adversário · sem identificação individual' : `${goalTypeLabel(goal.goal_type)} · ponto para ${goal.team_side === 'A' ? esc(match.team_a_name) : esc(match.team_b_name)}`;
-    return `<div class="goal-event goal-event-counted ${aggregateOpponentGoal ? 'aggregate-opponent-goal' : ''}">
+    return `<div class="goal-event goal-event-counted ${goalSideClass} ${aggregateOpponentGoal ? 'aggregate-opponent-goal' : ''}">
       <div class="goal-total-badge">${goal.count > 1 ? `×${goal.count}` : '⚽︎'}</div>
       <div class="goal-event-main"><strong>${author}${goal.goal_type === 'own_goal' ? ' · Gol contra' : ''}</strong><span>${description}</span></div>
     </div>`;
@@ -945,6 +951,10 @@ async function deleteAssist(matchId, playerId) {
 
 // Delegated click actions keep the interface simple as each view is redrawn.
 document.addEventListener('click', async event => {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !event.target.closest('#mobileMenu')) {
+    setSidebarOpen(false);
+  }
   const statsSortButton = event.target.closest('[data-stats-sort]');
   if (statsSortButton && state.view === 'stats') {
     const sort = statsSortButton.dataset.statsSort;
@@ -1028,7 +1038,9 @@ document.getElementById('quickAddPlayer').addEventListener('click', () => {
   }
   openPlayerModal();
 });
-document.getElementById('mobileMenu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+document.getElementById('mobileMenu').addEventListener('click', () => {
+  setSidebarOpen(!document.getElementById('sidebar').classList.contains('open'));
+});
 
 // Start by checking that the backend is reachable, then render the dashboard.
 (async function boot() {
