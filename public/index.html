@@ -26,6 +26,10 @@
         <button class="nav-item" data-view="stats"><span class="nav-icon">↗</span><span>Estatísticas</span></button>
       </nav>
       <div class="sidebar-bottom">
+        <div class="sidebar-ad" aria-label="Anúncio">
+          <img src="anuncio_ns13.png" alt="Anúncio NS13">
+        </div>
+        <div class="sidebar-ad-label">Publicidade</div>
         <div class="season-card">
           <div class="season-ball">🏆</div>
           <div><strong>Temporada em andamento</strong><p>Cada jogo vale uma história.</p></div>
@@ -36,11 +40,15 @@
     <main class="main-area">
       <header class="topbar">
         <button class="mobile-menu" id="mobileMenu" aria-label="Abrir menu">☰</button>
+        <a class="mobile-brand" href="#dashboard" aria-label="FutSENAI - início">
+          <span class="brand-mark"><img src="logo_futsenai_branca.png" alt=""></span>
+          <strong>Fut<span>SENAI</span></strong>
+        </a>
         <div class="breadcrumb"><span>FutSENAI</span><span class="crumb-slash">/</span><strong id="pageCrumb">Visão geral</strong></div>
         <div class="topbar-actions"><div class="today-chip"><span>◷</span><span id="todayLabel">Hoje</span></div><button class="avatar-button" id="quickAddPlayer" title="Cadastrar jogador">＋</button></div>
       </header>
 
-      <div class="read-only-notice" id="readOnlyNotice" role="status" hidden>Modo somente leitura: dados carregados do arquivo JSON publicado. Para editar, inicie o servidor com <strong>npm start</strong>.</div>
+      <div class="read-only-notice" id="readOnlyNotice" role="status" hidden><strong>Modo somente leitura:</strong> apenas para visualização dos dados.</div>
       <div class="page-content" id="pageContent">
         <div class="loading-state"><div class="spinner"></div><p>Preparando a quadra...</p></div>
       </div>

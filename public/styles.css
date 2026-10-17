@@ -108,6 +108,8 @@
 .goal-entry-row{grid-template-columns:minmax(0,1fr) repeat(3,58px)}
 .goal-count-legend{grid-template-columns:repeat(3,minmax(0,1fr))}
 .roster-player-info{flex:1}
+.roster-player-stats{color:#4d505c}
+.roster-player-stats strong{font-weight:800}
 .assist-delete{width:27px;height:27px;flex:none;border:1px solid #ececf0;border-radius:7px;background:#fff;color:#8a8c95;font-size:17px;line-height:1;cursor:pointer}
 .assist-delete:hover{border-color:#efbbc6;color:var(--red)}
 @media(max-width:560px){.goal-entry-row{grid-template-columns:minmax(0,1fr) repeat(3,48px)}}
@@ -259,9 +261,30 @@
 .read-only-mode [data-action="edit-player"],
 .read-only-mode [data-action="archive-player"],
 .read-only-mode [data-action="reactivate-player"],
-.read-only-mode [data-action="new-match"],
 .read-only-mode [data-action="new-goal"],
 .read-only-mode [data-action="delete-match"],
 .read-only-mode [data-action="delete-goal"]{display:none!important}
 .read-only-mode .player-card-actions{display:none}
+.draw-test-notice{display:grid;gap:4px;margin-bottom:16px;padding:13px 15px;border:1px solid #dce5f5;border-radius:11px;background:#f5f8ff;color:#4d5e7b;font-size:11px;line-height:1.5}
+.draw-test-notice strong{color:#34496f;font-size:12px}
+.team-draw-test-mode .section-caption{margin-top:8px}
+.sidebar-ad{position:relative;height:120px;margin:0 0 14px;overflow:hidden;border-radius:4px;background:#f7f7f9}
+.sidebar-ad-label{margin:-9px 0 13px;text-align:center;color:#82848b;font-size:10px;line-height:1.2}
+.sidebar-ad img{position:absolute;top:0;left:0;width:340px;height:auto;max-width:none;animation:sidebar-ad-travel 10s ease-in-out infinite alternate}
+.stat-hero:after{z-index:0}
+.top-waiter-hero:after{content:"♕"}
+.stat-hero>*{position:relative;z-index:1}
+.stat-hero.top-scorer-hero{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.stat-hero-copy{min-width:0}
+.stat-hero-avatar{width:88px;height:88px;flex:none;border:3px solid #fff;border-radius:25px;font-size:27px;box-shadow:0 5px 14px #25263018}
+.stat-hero.top-waiter-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:17px 20px}
+.top-waiter-hero .eyebrow{margin-bottom:5px}
+.top-waiter-hero .stat-hero-copy>strong{font-size:16px;letter-spacing:normal}
+.top-waiter-hero .stat-hero-copy>p{margin-top:5px;font-size:10px}
+.top-waiter-hero .stat-hero-avatar{width:64px;height:64px;border-radius:20px;font-size:20px}
+.mobile-brand{display:none}
+@keyframes sidebar-ad-travel{from{left:0}to{left:calc(100% - 340px)}}
+@media(max-width:760px){.mobile-brand{display:flex;align-items:center;gap:7px;flex:none;color:var(--ink);font:800 14px var(--display);letter-spacing:-.5px}.mobile-brand .brand-mark{width:33px;height:33px;border-radius:10px}.mobile-brand .brand-mark img{width:25px;height:25px;object-fit:contain}.mobile-brand strong span{color:var(--red)}.breadcrumb{gap:0}.breadcrumb>span,.breadcrumb .crumb-slash{display:none}.breadcrumb strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+@media(max-width:400px){.mobile-brand{gap:0}.mobile-brand strong{display:none}}
+@media(max-width:480px){.stat-hero-avatar{width:72px;height:72px;border-radius:22px}}
 @media(max-width:760px){.read-only-notice{margin:12px 17px 0}}

@@ -89,6 +89,7 @@ FutSENAI/
 | `POST` | `/api/matches` | Cria partida (`played_on`, `participants`) |
 | `DELETE` | `/api/matches/:id` | Exclui partida e gols relacionados |
 | `POST` | `/api/matches/:id/goals` | Registra gols e assistências por jogador (`entries`) |
+| `PUT` | `/api/matches/:id/goals` | Substitui os totais de gols, assistências e gols contra da partida |
 | `DELETE` | `/api/matches/:matchId/goals/:goalId` | Remove um gol do histórico |
 | `DELETE` | `/api/matches/:matchId/assists/:playerId` | Remove uma assistência do jogador naquela partida |
 
@@ -117,5 +118,7 @@ Exemplo de registro em lote de gols e assistências (as quantidades são somadas
   ]
 }
 ```
+
+O `POST /api/matches/:id/goals` continua somando novos valores. Para substituir as estatísticas diretamente, use `PUT /api/matches/:id/goals` com os totais atuais desejados em `entries` para todos os jogadores escalados; `opponent_goals` e `opponent_own_goals` também representam os novos totais da partida.
 
 `opponent_type` aceita `classmates` (jogo interno) ou `second_year` (interclasse contra o 2º Ano). `team_side` aceita `A` (Time Vermelho / 3º A) ou `B` (Time Branco / 2º Ano). Em partidas interclasse, todos os participantes devem usar `team_side: "A"`. Em `entries`, `goals` são gols regulares, `assists` são assistências e `own_goals` são gols contra, creditados no placar adversário. Para registrar gols agregados do 2º Ano, envie `opponent_goals` (gols do adversário) e `opponent_own_goals` (gols contra do adversário, creditados ao 3º A) junto com `entries`, por exemplo `{ "entries": [{ "player_id": 1, "goals": 2, "assists": 0, "own_goals": 0 }], "opponent_goals": 3, "opponent_own_goals": 1 }`.

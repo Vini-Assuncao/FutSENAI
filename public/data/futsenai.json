@@ -4,7 +4,7 @@
     "players": 15,
     "matches": 7,
     "match_players": 50,
-    "goals": 178
+    "goals": 210
   },
   "players": [
     {
@@ -167,67 +167,78 @@
       "id": 33,
       "match_id": 5,
       "player_id": 4,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 34,
       "match_id": 5,
       "player_id": 7,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 35,
       "match_id": 5,
       "player_id": 11,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 36,
       "match_id": 5,
       "player_id": 1,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 37,
       "match_id": 5,
       "player_id": 3,
-      "team_side": "B"
+      "team_side": "B",
+      "assists": 0
     },
     {
       "id": 38,
       "match_id": 5,
       "player_id": 5,
-      "team_side": "B"
+      "team_side": "B",
+      "assists": 0
     },
     {
       "id": 39,
       "match_id": 5,
       "player_id": 8,
-      "team_side": "B"
+      "team_side": "B",
+      "assists": 0
     },
     {
       "id": 40,
       "match_id": 5,
       "player_id": 10,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 41,
       "match_id": 5,
       "player_id": 9,
-      "team_side": "A"
+      "team_side": "A",
+      "assists": 0
     },
     {
       "id": 42,
       "match_id": 5,
       "player_id": 6,
-      "team_side": "B"
+      "team_side": "B",
+      "assists": 0
     },
     {
       "id": 43,
       "match_id": 5,
       "player_id": 2,
-      "team_side": "B"
+      "team_side": "B",
+      "assists": 0
     },
     {
       "id": 44,
@@ -407,76 +418,6 @@
       "goal_type": "normal"
     },
     {
-      "id": 150,
-      "match_id": 5,
-      "team_side": "A",
-      "player_id": 7,
-      "goal_type": "normal"
-    },
-    {
-      "id": 151,
-      "match_id": 5,
-      "team_side": "A",
-      "player_id": 7,
-      "goal_type": "normal"
-    },
-    {
-      "id": 152,
-      "match_id": 5,
-      "team_side": "A",
-      "player_id": 9,
-      "goal_type": "normal"
-    },
-    {
-      "id": 153,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 8,
-      "goal_type": "normal"
-    },
-    {
-      "id": 154,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 6,
-      "goal_type": "normal"
-    },
-    {
-      "id": 155,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 6,
-      "goal_type": "normal"
-    },
-    {
-      "id": 156,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 6,
-      "goal_type": "normal"
-    },
-    {
-      "id": 157,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 2,
-      "goal_type": "normal"
-    },
-    {
-      "id": 158,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 2,
-      "goal_type": "normal"
-    },
-    {
-      "id": 159,
-      "match_id": 5,
-      "team_side": "B",
-      "player_id": 2,
-      "goal_type": "normal"
-    },
-    {
       "id": 160,
       "match_id": 6,
       "team_side": "A",
@@ -601,6 +542,76 @@
       "team_side": "A",
       "player_id": null,
       "goal_type": "own_goal"
+    },
+    {
+      "id": 200,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 201,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 202,
+      "match_id": 5,
+      "team_side": "A",
+      "player_id": 9,
+      "goal_type": "normal"
+    },
+    {
+      "id": 203,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 8,
+      "goal_type": "normal"
+    },
+    {
+      "id": 204,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 205,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 206,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 6,
+      "goal_type": "normal"
+    },
+    {
+      "id": 207,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 208,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 209,
+      "match_id": 5,
+      "team_side": "B",
+      "player_id": 2,
+      "goal_type": "normal"
     }
   ]
 }

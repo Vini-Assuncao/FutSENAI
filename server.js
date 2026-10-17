@@ -396,6 +396,75 @@ app.post('/api/matches/:id/goals', (req, res, next) => {
     res.status(201).json({ message: `${messages.join(' e ')} com sucesso.`, data: getMatchDetail(matchId) });
   } catch (error) { next(error); }
 });
+app.put('/api/matches/:id/goals', (req, res, next) => {
+  try {
+    const matchId = validId(req.params.id);
+    const data = dataStore.getData();
+    const match = data.matches.find(item => item.id === matchId);
+    if (!match) throw httpError(404, 'Partida não encontrada.');
+    if (!Array.isArray(req.body.entries)) throw httpError(400, 'Informe os totais de gols e assistências dos jogadores.');
+
+    const opponentGoals = Number(req.body.opponent_goals ?? 0);
+    const opponentOwnGoals = Number(req.body.opponent_own_goals ?? 0);
+    for (const count of [opponentGoals, opponentOwnGoals]) {
+      if (!Number.isInteger(count) || count < 0 || count > 300) throw httpError(400, 'Os gols do 2º Ano devem estar entre 0 e 300.');
+    }
+    if (match.opponent_type !== 'second_year' && (opponentGoals > 0 || opponentOwnGoals > 0)) {
+      throw httpError(400, 'Os campos de gols do 2º Ano só podem ser usados em confrontos contra essa turma.');
+    }
+
+    const participants = data.match_players.filter(participant => participant.match_id === matchId);
+    const participantById = new Map(participants.map(participant => [participant.player_id, participant]));
+    const seen = new Set();
+    const entries = [];
+    let totalGoals = opponentGoals + opponentOwnGoals;
+    let totalAssists = 0;
+    for (const entry of req.body.entries) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw httpError(400, 'Cada estatística precisa identificar um jogador.');
+      const playerId = Number(entry.player_id);
+      if (!Number.isInteger(playerId) || !participantById.has(playerId)) throw httpError(400, 'Todos os jogadores precisam pertencer a esta partida.');
+      if (seen.has(playerId)) throw httpError(400, 'Um jogador aparece mais de uma vez no formulário.');
+      seen.add(playerId);
+      const goals = Number(entry.goals ?? 0);
+      const ownGoals = Number(entry.own_goals ?? 0);
+      const assists = Number(entry.assists ?? 0);
+      for (const count of [goals, ownGoals, assists]) {
+        if (!Number.isInteger(count) || count < 0 || count > 99) {
+          throw httpError(400, 'Cada total de gols e assistências deve estar entre 0 e 99 por jogador.');
+        }
+      }
+      totalGoals += goals + ownGoals;
+      totalAssists += assists;
+      entries.push({ playerId, goals, ownGoals, assists, teamSide: participantById.get(playerId).team_side });
+    }
+    if (seen.size !== participants.length) throw httpError(400, 'Informe os totais de todos os jogadores escalados.');
+    if (totalGoals > 300) throw httpError(400, 'Registre no máximo 300 gols por partida.');
+    if (totalAssists > 300) throw httpError(400, 'Registre no máximo 300 assistências por partida.');
+
+    dataStore.transaction(nextData => {
+      nextData.goals = nextData.goals.filter(goal => goal.match_id !== matchId);
+      const addGoal = (teamSide, playerId, goalType) => {
+        nextData.goals.push({
+          id: nextData.nextIds.goals++,
+          match_id: matchId,
+          team_side: teamSide,
+          player_id: playerId,
+          goal_type: goalType
+        });
+      };
+      for (const entry of entries) {
+        const participant = nextData.match_players.find(item => item.match_id === matchId && item.player_id === entry.playerId);
+        participant.assists = entry.assists;
+        for (let i = 0; i < entry.goals; i++) addGoal(entry.teamSide, entry.playerId, 'normal');
+        const opposingSide = entry.teamSide === 'A' ? 'B' : 'A';
+        for (let i = 0; i < entry.ownGoals; i++) addGoal(opposingSide, entry.playerId, 'own_goal');
+      }
+      for (let i = 0; i < opponentGoals; i++) addGoal('B', null, 'normal');
+      for (let i = 0; i < opponentOwnGoals; i++) addGoal('A', null, 'own_goal');
+    });
+    res.json({ message: 'Estatísticas da partida atualizadas.', data: getMatchDetail(matchId) });
+  } catch (error) { next(error); }
+});
 app.delete('/api/matches/:matchId/assists/:playerId', (req, res, next) => {
   try {
     const matchId = validId(req.params.matchId);
