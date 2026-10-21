@@ -243,8 +243,8 @@
 .draw-team-b .draw-card-back{background:radial-gradient(circle at 50% 40%,#8299c3 0,#536b98 58%,#34496f 100%)}
 .draw-card-front{align-items:center;justify-content:center;gap:10px;padding:14px 10px 12px;border:1px solid #f0d8de;border-top:4px solid var(--red);background:radial-gradient(ellipse at 50% 35%,#fff 0,#fff 45%,#fff5f7 100%)}
 .draw-team-b .draw-card-front{border-color:#dce4f3;border-top-color:#6079a8;background:radial-gradient(ellipse at 50% 35%,#fff 0,#fff 45%,#f1f5ff 100%)}
-.draw-playing-card-corner{position:absolute;z-index:1;top:8px;left:9px;display:grid;justify-items:center;gap:1px;font:700 11px/1 var(--display)}
-.draw-playing-card-corner:last-child{top:auto;right:9px;bottom:8px;left:auto;transform:rotate(180deg)}
+.draw-playing-card-corner{position:absolute;z-index:5;top:8px;left:9px;display:grid;justify-items:center;gap:1px;font:700 11px/1 var(--display)}
+.draw-playing-card-corner-bottom{top:auto;right:9px;bottom:8px;left:auto;transform:rotate(180deg)}
 .draw-playing-card-corner i{font-size:10px;font-style:normal}
 .draw-suit-red{color:#bf2947}
 .draw-suit-blue{color:#536b98}

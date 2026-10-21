@@ -3,7 +3,7 @@
   "nextIds": {
     "players": 15,
     "matches": 8,
-    "match_players": 54,
+    "match_players": 55,
     "goals": 220
   },
   "players": [
@@ -314,6 +314,13 @@
       "player_id": 9,
       "team_side": "A",
       "assists": 1
+    },
+    {
+      "id": 54,
+      "match_id": 7,
+      "player_id": 8,
+      "team_side": "A",
+      "assists": 0
     }
   ],
   "goals": [
