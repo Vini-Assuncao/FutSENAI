@@ -165,7 +165,6 @@
 .draw-team-b .draw-card-front{border-color:#e1e8f3}
 @keyframes team-card-flip{0%{transform:rotateY(0) scale(.9)}70%{transform:rotateY(195deg) scale(1.04)}100%{transform:rotateY(180deg) scale(1)}}
 @media(max-width:560px){.team-draw-results{grid-template-columns:1fr}.draw-team-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){.draw-player-card-inner{animation:none;transform:rotateY(180deg)}}
 .player-quality{display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:3px 7px;border-radius:20px;background:#fff3d9;color:#966614;font-size:9px;font-weight:700}
 .player-quality strong{color:#80520b}
 .team-draw-results:not([hidden]){animation:team-draw-arrive .38s ease-out both}
@@ -173,7 +172,6 @@
 .draw-team-b{animation-delay:.08s}
 .draw-card-front .draw-player-quality{flex:none;margin-left:auto;color:#a8781b;font-size:9px;font-weight:800}
 @keyframes team-draw-arrive{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.team-draw-results:not([hidden]),.draw-team{animation:none}}
 
 /* Animação do baralho no sorteio de times — apenas apresentação visual. */
 .draw-stage-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:94px;padding:14px 17px;margin-bottom:1px;overflow:hidden;border:1px solid #f0e2e6;border-radius:14px;background:radial-gradient(ellipse at 88% 15%,#eaf0ff 0,transparent 36%),linear-gradient(110deg,#fff5f7 0%,#fff 58%,#f7f9ff 100%);animation:draw-stage-arrive .42s ease-out both}
@@ -215,7 +213,6 @@
 @keyframes deck-card-middle{0%{transform:translate(0,-4px) rotate(0)}48%{transform:translate(2px,-2px) rotate(-1deg)}100%{transform:translate(-1px,2px) rotate(-5deg)}}
 @keyframes deck-card-top{0%{transform:translate(0,-4px) rotate(0)}50%{transform:translate(13px,-7px) rotate(13deg)}100%{transform:translate(9px,-3px) rotate(9deg)}}
 @media(max-width:560px){.draw-stage-heading{min-height:84px;padding:12px;gap:7px}.draw-stage-title>strong{font-size:13px}.draw-stage-title>small{max-width:230px;font-size:9px}.draw-deck{transform:scale(.82);transform-origin:center right;width:66px;margin-right:0}.draw-player-card{height:82px}.draw-card-face{padding:7px;gap:6px}.draw-card-player-row{gap:5px}.draw-card-player-row .player-avatar{width:27px;height:27px;border-radius:8px}.draw-card-player-copy strong{font-size:8.5px}.draw-card-team-label{font-size:6.5px;letter-spacing:.4px}}
-@media(prefers-reduced-motion:reduce){.draw-stage-heading,.draw-stage-pulse,.draw-deck-card,.draw-player-card,.draw-player-card-inner{animation:none!important;transition:none!important;will-change:auto}.draw-player-card{opacity:1;transform:none}.draw-player-card-inner{transform:rotateY(180deg)}}
 .draw-stage-heading{scroll-margin:18px}
 .draw-stage-title{align-content:center}
 .draw-stage-progress{color:#626673;font-size:10px;font-weight:700}
@@ -231,7 +228,6 @@
 .draw-player-card.is-revealed{animation:draw-card-deal 1.2s cubic-bezier(.18,.8,.25,1) both;will-change:transform}
 .draw-player-card.is-revealed .draw-player-card-inner{animation:team-card-flip 1.25s cubic-bezier(.2,.75,.25,1) both}
 @media(max-width:560px){.draw-stage-heading{align-items:center}.draw-deck{width:94px;transform:none}.draw-deck:hover:not(:disabled){transform:translateY(-2px)}.draw-deck-cards{transform:scale(.88);transform-origin:center bottom}.draw-deck-hint{font-size:6px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.draw-deck,.draw-player-card.is-revealed,.draw-player-card.is-revealed .draw-player-card-inner{animation:none!important;transition:none!important;will-change:auto}.draw-player-card-inner{transform:rotateY(0)}.draw-player-card.is-revealed .draw-player-card-inner{transform:rotateY(180deg)}}
 .draw-team-cards{grid-template-columns:repeat(auto-fit,minmax(96px,132px));justify-content:center;gap:10px;padding:12px}
 .draw-player-card{width:100%;max-width:132px;height:auto;aspect-ratio:0.78;justify-self:center;perspective:1000px}
 .draw-card-face{overflow:hidden;border-radius:13px}
@@ -344,11 +340,6 @@
 
 @keyframes team-glint{from{background-position:200% 0}to{background-position:-200% 0}}
 
-@media(prefers-reduced-motion:reduce){
-  .draw-deck::before,.draw-deck:not(:disabled) .draw-deck-cards,.draw-card-back::after,.draw-team::before,.reveal-burst,.draw-confetti-layer{animation:none!important;display:none}
-  .draw-player-card.is-revealed .draw-card-front::after{display:none}
-}
-
 /* Jornal FutSENAI na lateral e publicidade na Visão geral. */
 .sidebar-news-card{display:block;margin:0 3px 14px;padding:9px 9px 12px;border:1px solid #f2dbe0;border-radius:14px;background:linear-gradient(160deg,#fff5f5 0%,#ffe7e7 100%);color:var(--ink);transition:border-color .16s,background .16s,transform .16s;}
 .sidebar-news-card:hover{border-color:#e8a7b5;background:#ffe7e7;transform:translateY(-1px)}
@@ -388,4 +379,3 @@
 .draw-reroll-button{padding:7px 9px;font-size:9px;letter-spacing:-.1px;gap:4px}
 @media(max-width:760px){.dashboard-ad-content img{max-height:185px}}
 @media(max-width:560px){.draw-stage-actions{gap:0}.draw-reroll-button{font-size:8px;padding:6px 7px}.draw-stage-heading{gap:5px}}
-@media(prefers-reduced-motion:reduce){.sidebar-news-story,.sidebar-news-dot,.sidebar-news-nav{transition:none!important}.sidebar-news-story.is-changing{opacity:1;transform:none}}

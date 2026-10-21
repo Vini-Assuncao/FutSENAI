@@ -37,7 +37,6 @@ let journalRotationTimer = null;
 let journalTransitionTimer = null;
 let journalPointerInside = false;
 let journalFocusInside = false;
-const journalReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function formatJournalDate(value) {
   const date = new Date(value);
@@ -127,7 +126,7 @@ function stopJournalRotation() {
 }
 function startJournalRotation() {
   stopJournalRotation();
-  if (journalNews.length < 2 || journalReducedMotion.matches || document.hidden || journalPointerInside || journalFocusInside) return;
+  if (journalNews.length < 2 || document.hidden || journalPointerInside || journalFocusInside) return;
   journalRotationTimer = window.setInterval(() => showJournalNews(journalCurrentIndex + 1), JOURNAL_ROTATION_MS);
 }
 function showJournalNews(nextIndex) {
@@ -135,12 +134,12 @@ function showJournalNews(nextIndex) {
   journalCurrentIndex = (nextIndex % journalNews.length + journalNews.length) % journalNews.length;
   const story = document.getElementById('latestJournalNews');
   if (journalTransitionTimer !== null) window.clearTimeout(journalTransitionTimer);
-  if (story && !journalReducedMotion.matches) story.classList.add('is-changing');
+  if (story) story.classList.add('is-changing');
   journalTransitionTimer = window.setTimeout(() => {
     renderCurrentJournalNews();
     if (story) requestAnimationFrame(() => story.classList.remove('is-changing'));
     journalTransitionTimer = null;
-  }, story && !journalReducedMotion.matches ? 150 : 0);
+  }, story ? 150 : 0);
   startJournalRotation();
 }
 function renderLatestJournalNews(items) {
@@ -176,9 +175,6 @@ function setupJournalCarouselControls() {
     });
   }
   document.addEventListener('visibilitychange', () => document.hidden ? stopJournalRotation() : startJournalRotation());
-  const onMotionPreferenceChange = () => journalReducedMotion.matches ? stopJournalRotation() : startJournalRotation();
-  if (typeof journalReducedMotion.addEventListener === 'function') journalReducedMotion.addEventListener('change', onMotionPreferenceChange);
-  else if (typeof journalReducedMotion.addListener === 'function') journalReducedMotion.addListener(onMotionPreferenceChange);
 }
 async function loadLatestJournalNews() {
   try {
