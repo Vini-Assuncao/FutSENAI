@@ -348,7 +348,7 @@ async function renderDashboard() {
     ${rivalryPanel(result.secondYearRivalry)}
     <section class="dashboard-grid">
       <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Últimas partidas</h2><div class="panel-subtitle">${state.statsScope === 'interclass' ? 'Somente jogos contra o 2º Ano' : 'Somente jogos entre jogadores do 3º A'}</div></div><button class="text-action" data-action="go-matches">Ver todas →</button></div><div class="match-list">${recentHtml}</div></article>
-      <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Artilharia da turma</h2><div class="panel-subtitle">Gols no recorte selecionado</div></div><button class="text-action" data-action="go-stats">Ranking →</button></div><div class="scorer-list">${scorerHtml}</div></article>
+      <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Artilharia da turma</h2><div class="panel-subtitle">Gols</div></div><button class="text-action" data-action="go-stats">Ranking →</button></div><div class="scorer-list">${scorerHtml}</div></article>
     </section>
     <section class="dashboard-bottom">
       <article class="panel how-it-works-panel"><div class="panel-head"><div><h2 class="panel-title">O foco é a resenha</h2><div class="panel-subtitle">As equipes mudam. As estatísticas dos jogadores ficam.</div></div></div><div class="how-it-works-list">
@@ -457,7 +457,7 @@ function renderStatsContent() {
     .sort((left, right) => right.assists - left.assists || right.goals - left.goals || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }))[0];
   pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">NÚMEROS DO JOGO</div><h1>Estatísticas<span style="color:var(--red)">.</span></h1><p>Veja a evolução da turma, quem decide e como cada jogador contribui.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="go-matches">Ver partidas</button></div></section>
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
-    <section class="stats-grid">${statCard('Partidas no recorte', a.matches, '⚑', 'De acordo com o filtro')}${statCard('Gols no recorte', a.goals, '⚽︎', 'Todos os gols desses jogos')}${statCard('Média por partida', a.averageGoals, '↗', 'Gols por jogo considerado')}${statCard('Empates', a.draws, '＝', 'Jogos que terminaram iguais')}</section>
+    <section class="stats-grid">${statCard('Partidas', a.matches, '⚑', 'De acordo com o filtro')}${statCard('Gols', a.goals, '⚽︎', 'Todos os gols desses jogos')}${statCard('Média por partida', a.averageGoals, '↗', 'Gols por jogo considerado')}${statCard('Empates', a.draws, '＝', 'Jogos que terminaram iguais')}</section>
     ${rivalryPanel(a.secondYearRivalry)}
     <div class="stats-page-grid"><article class="panel"><div class="panel-head"><div><h2 class="panel-title">Ranking dos jogadores</h2><div class="panel-subtitle">Gols, assistências e desempenho, clique nas colunas para ordenar</div></div></div><div class="table-wrap"><table class="stats-table"><thead><tr><th>Jogador</th>${statsSortHeader('Jogos', 'matches_played')}${statsSortHeader('Gols', 'goals')}${statsSortHeader('Assistências', 'assists')}${statsSortHeader('Vitórias', 'wins')}${statsSortHeader('Derrotas', 'losses')}${statsSortHeader('G/A', 'ga')}</tr></thead><tbody>${tableRows}</tbody></table></div></article>
     <div><article class="stat-hero top-scorer-hero"><div class="stat-hero-copy"><div class="eyebrow">ARTILHEIRO</div><strong>${top ? `${esc(top.name)} - ${top.goals} ${top.goals === 1 ? 'gol' : 'gols'}` : '—'}</strong><p>${top ? `${esc(top.name)} lidera a artilharia.` : 'Quando houver gols nesse recorte, o destaque aparece aqui.'}</p></div>${top ? avatar(top, 'stat-hero-avatar') : ''}</article><article class="stat-hero top-waiter-hero"><div class="stat-hero-copy"><div class="eyebrow">GARÇOM</div><strong>${topWaiter ? `${esc(topWaiter.name)} - ${topWaiter.assists} ${topWaiter.assists === 1 ? 'assistência' : 'assistências'}` : '—'}</strong><p>${topWaiter ? `${esc(topWaiter.name)} lidera as assistências.` : 'Quando houver assistências nesse recorte, o destaque aparece aqui.'}</p></div>${topWaiter ? avatar(topWaiter, 'stat-hero-avatar') : ''}</article><article class="panel" style="margin-top:17px"><div class="panel-head"><div><h2 class="panel-title">Resumo do histórico</h2><div class="panel-subtitle">Números das partidas filtradas</div></div></div><div class="stats-metric-list"><div class="stats-metric"><span>Jogadores com estatísticas</span><strong>${ranking.length}</strong></div><div class="stats-metric"><span>Média de gols por partida</span><strong>${a.averageGoals}</strong></div><div class="stats-metric"><span>Partidas empatadas</span><strong>${a.draws}</strong></div><div class="stats-metric"><span>Total de partidas</span><strong>${a.matches}</strong></div></div></article></div></div>`;
@@ -744,6 +744,7 @@ function drawTeams() {
   }
   const deckHeader = `<div class="draw-stage-heading"><div class="draw-stage-title"><span class="draw-stage-kicker"><i class="draw-stage-pulse"></i>SORTEIO DE CARTAS</span><strong>Revele os jogadores</strong><small>Clique no baralho para revelar uma carta por vez.</small><span class="draw-stage-progress" id="drawStageProgress" role="status">0 de ${cardIndex} jogadores revelados</span></div><button type="button" class="draw-deck" data-action="reveal-next-player" aria-label="Revelar próximo jogador"><span class="draw-deck-cards" aria-hidden="true"><span class="draw-deck-card draw-deck-card-shadow"></span><span class="draw-deck-card draw-deck-card-mid">⚽︎</span><span class="draw-deck-card draw-deck-card-top"><b>FS</b><i>✦</i></span></span><span class="draw-deck-hint">CLIQUE PARA REVELAR</span></button></div>`;
   results.dataset.revealedCount = '0';
+  results.classList.remove('is-complete');
   results.innerHTML = deckHeader + sortedTeams.map(team => {
     const cardRanks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const cardSuits = [
@@ -765,9 +766,45 @@ function drawTeams() {
     return `<section class="draw-team draw-team-${team.side.toLowerCase()}"><div class="draw-team-heading"><div><span>${team.name}</span><strong>${team.players.length} ${team.players.length === 1 ? 'jogador' : 'jogadores'} · qualidade ${team.quality}</strong></div><span class="draw-team-ball">⚽︎</span></div><div class="draw-team-cards">${cards}</div></section>`;
   }).join('');
   results.hidden = false;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  results.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+  results.scrollIntoView({ behavior: 'smooth', block: 'center' });
   results.querySelector('.draw-deck').focus({ preventScroll: true });
+}
+function spawnRevealBurst(card, side) {
+  const front = card.querySelector('.draw-card-front');
+  if (!front) return;
+  const burst = document.createElement('span');
+  burst.className = `reveal-burst reveal-burst-${side}`;
+  burst.setAttribute('aria-hidden', 'true');
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const spark = document.createElement('i');
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.35;
+    const distance = 36 + Math.random() * 30;
+    spark.style.setProperty('--sx', `${Math.cos(angle) * distance}px`);
+    spark.style.setProperty('--sy', `${Math.sin(angle) * distance}px`);
+    spark.style.setProperty('--sd', `${Math.round(Math.random() * 90)}ms`);
+    burst.appendChild(spark);
+  }
+  front.appendChild(burst);
+  window.setTimeout(() => burst.remove(), 1100);
+}
+function celebrateDraw(results) {
+  const colors = ['#d7193f', '#ae1131', '#f5b942', '#20212a', '#ff8fa5', '#2866d8', '#8fa9d9'];
+  const layer = document.createElement('div');
+  layer.className = 'draw-confetti-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 52; i++) {
+    const piece = document.createElement('i');
+    piece.className = 'draw-confetti-piece';
+    piece.style.setProperty('--cx', `${Math.round(Math.random() * 100)}%`);
+    piece.style.setProperty('--cd', `${Math.round(Math.random() * 500)}ms`);
+    piece.style.setProperty('--cr', `${Math.round(Math.random() * 720 - 360)}deg`);
+    piece.style.setProperty('--cs', (0.8 + Math.random() * 0.8).toFixed(2));
+    piece.style.background = colors[i % colors.length];
+    layer.appendChild(piece);
+  }
+  results.appendChild(layer);
+  window.setTimeout(() => layer.remove(), 2800);
 }
 function revealNextPlayer(button) {
   const results = document.getElementById('teamDrawResults');
@@ -778,6 +815,10 @@ function revealNextPlayer(button) {
 
   card.classList.add('is-revealed');
   card.querySelector('.draw-card-front').removeAttribute('aria-hidden');
+  spawnRevealBurst(card, card.closest('.draw-team')?.classList.contains('draw-team-b') ? 'b' : 'a');
+  button.classList.remove('is-shuffling');
+  void button.offsetWidth;
+  button.classList.add('is-shuffling');
   const nextCount = revealedCount + 1;
   results.dataset.revealedCount = String(nextCount);
   const total = results.querySelectorAll('.draw-player-card').length;
@@ -787,6 +828,8 @@ function revealNextPlayer(button) {
     ? `Sorteio concluído · ${total} ${total === 1 ? 'jogador revelado' : 'jogadores revelados'}`
     : `${nextCount} de ${total} jogadores revelados`;
   if (complete) {
+    results.classList.add('is-complete');
+    celebrateDraw(results);
     button.disabled = true;
     button.setAttribute('aria-label', 'Todos os jogadores foram revelados');
     button.querySelector('.draw-deck-hint').textContent = 'SORTEIO CONCLUÍDO';

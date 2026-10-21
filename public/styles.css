@@ -290,3 +290,65 @@
 @media(max-width:400px){.mobile-brand{gap:0}.mobile-brand strong{display:none}}
 @media(max-width:480px){.stat-hero-avatar{width:72px;height:72px;border-radius:22px}}
 @media(max-width:760px){.read-only-notice{margin:12px 17px 0}}
+
+/* ===== Sorteio de times: efeitos chamativos (camada extra) ===== */
+.team-draw-results{position:relative}
+.team-draw-results.is-complete .draw-stage-heading{border-color:#f0b8c6;box-shadow:0 0 0 3px #d7193f14,0 10px 28px #d7193f1f}
+.team-draw-results.is-complete .draw-stage-progress{color:var(--red-dark);font-weight:800}
+
+/* Baralho: pulso convidativo enquanto há cartas, tremor ao embaralhar */
+.draw-deck{isolation:isolate}
+.draw-deck::before{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;background:radial-gradient(circle,#d7193f22 0,#d7193f00 68%);pointer-events:none}
+.draw-deck:not(:disabled)::before{animation:deck-aura 2.4s ease-in-out infinite}
+.draw-deck:not(:disabled) .draw-deck-cards{animation:deck-bob 2.8s ease-in-out infinite}
+.draw-deck.is-shuffling .draw-deck-card{animation:deck-jolt .46s cubic-bezier(.3,.7,.3,1) both!important}
+.draw-deck.is-shuffling .draw-deck-card-mid{animation-delay:.04s!important}
+.draw-deck.is-shuffling .draw-deck-card-top{animation-delay:.08s!important}
+.draw-deck:disabled::before{display:none}
+.draw-deck-hint{position:relative;padding:3px 7px;border-radius:20px;background:#fff;box-shadow:0 2px 6px #26304b14}
+.draw-deck:disabled .draw-deck-hint{background:#f1f2f5;color:#777b88}
+
+/* Carta: brilho holográfico ao revelar, moldura em cor do time e estrela cintilante no verso */
+.draw-card-back::after{animation:card-star-twinkle 2.6s ease-in-out infinite}
+.draw-player-card.is-revealed .draw-card-front{overflow:hidden}
+.draw-player-card.is-revealed .draw-card-front::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(115deg,transparent 38%,#ffffffb3 48%,#ffe6ec80 52%,transparent 62%);background-size:260% 100%;background-position:130% 0;animation:card-sheen 1.1s ease-out .35s both}
+.draw-player-card.is-revealed .draw-card-front{box-shadow:0 10px 24px #d7193f26,inset 0 0 0 1px #ffffffb0}
+.draw-team-b .draw-player-card.is-revealed .draw-card-front{box-shadow:0 10px 24px #2866d826,inset 0 0 0 1px #ffffffb0}
+.draw-player-card.is-revealed .draw-card-front .player-avatar{animation:avatar-pop .6s cubic-bezier(.2,.9,.3,1.4) .25s both}
+.draw-player-card.is-revealed .draw-card-player-copy strong{animation:name-rise .5s ease-out .3s both}
+
+/* Explosão de faíscas no momento da revelação */
+.reveal-burst{position:absolute;z-index:3;left:50%;top:50%;width:0;height:0;pointer-events:none}
+.reveal-burst i{position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:#d7193f;box-shadow:0 0 8px #d7193fcc;opacity:0;animation:reveal-spark .8s cubic-bezier(.15,.7,.3,1) var(--sd) both}
+.reveal-burst i:nth-child(3n){width:4px;height:4px;background:#f5b942;box-shadow:0 0 7px #f5b942cc}
+.reveal-burst i:nth-child(4n){border-radius:1px;transform:rotate(45deg)}
+.reveal-burst-b i{background:#2866d8;box-shadow:0 0 8px #2866d8cc}
+.reveal-burst-b i:nth-child(3n){background:#8fb3ff;box-shadow:0 0 7px #8fb3ffcc}
+
+/* Chuva de confete ao concluir o sorteio */
+.draw-confetti-layer{position:absolute;inset:0;z-index:20;overflow:hidden;pointer-events:none;border-radius:14px}
+.draw-confetti-piece{position:absolute;top:-14px;left:var(--cx);width:8px;height:12px;border-radius:2px;opacity:0;animation:confetti-fall 2.2s cubic-bezier(.25,.5,.5,1) var(--cd) both}
+.draw-confetti-piece:nth-child(3n){width:6px;height:6px;border-radius:50%}
+.draw-confetti-piece:nth-child(4n){width:5px;height:14px}
+
+@keyframes deck-aura{0%,100%{transform:scale(.92);opacity:.55}50%{transform:scale(1.12);opacity:1}}
+@keyframes deck-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes deck-jolt{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-9px,-5px) rotate(-12deg)}55%{transform:translate(7px,-3px) rotate(9deg)}80%{transform:translate(-3px,2px) rotate(-3deg)}100%{transform:translate(0,0) rotate(0)}}
+@keyframes card-star-twinkle{0%,100%{opacity:.45;transform:scale(.9) rotate(0)}50%{opacity:1;transform:scale(1.25) rotate(22deg)}}
+@keyframes card-sheen{0%{background-position:130% 0}100%{background-position:-60% 0}}
+@keyframes avatar-pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes name-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes reveal-spark{0%{opacity:0;transform:translate(0,0) scale(.3) rotate(0)}20%{opacity:1}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(1.1) rotate(160deg)}}
+@keyframes confetti-fall{0%{opacity:0;transform:translate3d(0,0,0) rotate(0) scale(var(--cs))}10%{opacity:1}100%{opacity:0;transform:translate3d(0,330px,0) rotate(var(--cr)) scale(var(--cs))}}
+
+/* Times: faixa de brilho animada no topo de cada coluna */
+.draw-team{position:relative}
+.draw-team::before{content:"";position:absolute;z-index:1;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,#d7193f,#f5b942,#d7193f,transparent);background-size:200% 100%;animation:team-glint 2.6s linear infinite;pointer-events:none}
+.draw-team-b::before{background:linear-gradient(90deg,transparent,#2866d8,#8fb3ff,#2866d8,transparent);background-size:200% 100%}
+
+@keyframes team-glint{from{background-position:200% 0}to{background-position:-200% 0}}
+
+@media(prefers-reduced-motion:reduce){
+  .draw-deck::before,.draw-deck:not(:disabled) .draw-deck-cards,.draw-card-back::after,.draw-team::before,.reveal-burst,.draw-confetti-layer{animation:none!important;display:none}
+  .draw-player-card.is-revealed .draw-card-front::after{display:none}
+}
