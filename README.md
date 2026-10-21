@@ -17,6 +17,8 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Gol contra:** o jogador que fez o gol contra não recebe crédito de artilharia; o gol entra no placar do time adversário.
 - **Resumo de gols agrupado:** os gols aparecem agrupados por jogador e tipo. O botão de menos desfaz um gol por vez daquele grupo.
 - **Persistência real:** jogadores, partidas, escalações e gols são guardados em `public/data/futsenai.json`; as fotos ficam em `public/uploads/`.
+- **Jornal FutSENAI:** carrossel lateral com até três notícias recentes, capas, tags, datas, navegação por setas e indicadores, rotação automática pausada durante interação e link para o jornal.
+- **Re-sortear times:** o botão no resultado gera uma nova divisão usando os mesmos jogadores que já foram selecionados.
 - **Leitura sem API:** quando a aplicação é servida como site estático sem a API Node, os dados publicados continuam disponíveis para consulta em modo somente leitura. Para cadastrar ou editar dados, use `npm start`.
 - **Interface responsiva:** design branco e vermelho para computadores e celulares.
 

@@ -30,6 +30,15 @@ function esc(value) {
 function initials(name) {
   return String(name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase();
 }
+const JOURNAL_ROTATION_MS = 8500;
+let journalNews = [];
+let journalCurrentIndex = 0;
+let journalRotationTimer = null;
+let journalTransitionTimer = null;
+let journalPointerInside = false;
+let journalFocusInside = false;
+const journalReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
 function formatJournalDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Data indisponível';
@@ -37,46 +46,139 @@ function formatJournalDate(value) {
     day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo'
   }).format(date).replace('.', '');
 }
-function renderLatestJournalNews(item) {
-  if (!item || typeof item !== 'object') return;
+function fallbackJournalNewsFromMarkup() {
+  const title = document.getElementById('sidebarJournalTitle')?.textContent?.trim();
+  const tag = document.getElementById('sidebarJournalTag')?.textContent?.trim();
+  const date = document.getElementById('sidebarJournalDate');
+  const excerpt = document.getElementById('sidebarJournalExcerpt')?.textContent?.trim();
+  const cover = document.getElementById('sidebarJournalCover');
+  const image = cover?.getAttribute('src');
+  if (!title) return [];
+  return [{
+    title,
+    category: tag || 'NOTÍCIA',
+    createdAt: date?.dateTime || '',
+    content: excerpt || '',
+    image: image && image !== 'jornal-capa-padrao.svg' ? image : ''
+  }];
+}
+function journalImageUrl(item) {
+  const providedImage = typeof item.image === 'string' ? item.image.trim() : '';
+  if (!providedImage) return '';
+  try {
+    const parsedImageUrl = new URL(providedImage, JOURNAL_HOME_URL);
+    if (parsedImageUrl.protocol === 'https:' || parsedImageUrl.protocol === 'http:') return parsedImageUrl.href;
+  } catch {
+    // A imagem inválida será substituída pela capa ilustrativa.
+  }
+  return '';
+}
+function renderCurrentJournalNews() {
+  if (!journalNews.length) return;
+  const item = journalNews[journalCurrentIndex];
   const link = document.getElementById('latestJournalNews');
   const cover = document.getElementById('sidebarJournalCover');
   const tag = document.getElementById('sidebarJournalTag');
   const date = document.getElementById('sidebarJournalDate');
   const title = document.getElementById('sidebarJournalTitle');
   const excerpt = document.getElementById('sidebarJournalExcerpt');
-  if (!link || !cover || !tag || !date || !title || !excerpt) return;
+  const kicker = document.getElementById('sidebarJournalKicker');
+  const controls = document.getElementById('sidebarJournalControls');
+  const dots = document.getElementById('sidebarJournalDots');
+  if (!link || !cover || !tag || !date || !title || !excerpt || !dots) return;
 
   const headline = String(item.title || 'Última notícia do Jornal FutSENAI').trim();
-  const providedImage = typeof item.image === 'string' ? item.image.trim() : '';
-  let coverUrl = '';
-  if (providedImage) {
-    try {
-      const parsedImageUrl = new URL(providedImage, JOURNAL_HOME_URL);
-      if (parsedImageUrl.protocol === 'https:' || parsedImageUrl.protocol === 'http:') {
-        coverUrl = parsedImageUrl.href;
-      }
-    } catch {
-      // Usa a capa ilustrativa se o endereço da imagem não for válido.
-    }
-  }
+  const coverUrl = journalImageUrl(item);
+  cover.onerror = () => {
+    cover.onerror = null;
+    cover.src = 'jornal-capa-padrao.svg';
+    cover.alt = `Capa ilustrativa da matéria: ${headline}`;
+  };
   cover.src = coverUrl || 'jornal-capa-padrao.svg';
   cover.alt = coverUrl ? `Capa da matéria: ${headline}` : `Capa ilustrativa da matéria: ${headline}`;
-  cover.onerror = () => {
-    if (!cover.src.endsWith('/jornal-capa-padrao.svg')) {
-      cover.src = 'jornal-capa-padrao.svg';
-      cover.alt = `Capa ilustrativa da matéria: ${headline}`;
-    }
-  };
 
   link.href = JOURNAL_HOME_URL;
   link.setAttribute('aria-label', `Ler no Jornal FutSENAI: ${headline}`);
+  if (kicker) kicker.textContent = 'JORNAL FUTSENAI';
   tag.textContent = String(item.category || 'NOTÍCIA').trim().toLocaleUpperCase('pt-BR');
-  title.textContent = headline;
   date.dateTime = String(item.createdAt || '');
   date.textContent = formatJournalDate(item.createdAt);
   const cleanContent = String(item.content || '').replace(/\s+/g, ' ').trim();
   excerpt.textContent = cleanContent.length > 190 ? `${cleanContent.slice(0, 187).trimEnd()}…` : cleanContent;
+  title.textContent = headline;
+
+  dots.replaceChildren();
+  journalNews.forEach((newsItem, index) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'sidebar-news-dot' + (index === journalCurrentIndex ? ' is-active' : '');
+    dot.dataset.journalIndex = String(index);
+    dot.setAttribute('aria-label', `Ver notícia ${index + 1}: ${String(newsItem.title || '').trim()}`);
+    dot.setAttribute('aria-current', String(index === journalCurrentIndex));
+    dots.append(dot);
+  });
+  if (controls) controls.hidden = journalNews.length < 2;
+}
+function stopJournalRotation() {
+  if (journalRotationTimer !== null) {
+    window.clearInterval(journalRotationTimer);
+    journalRotationTimer = null;
+  }
+}
+function startJournalRotation() {
+  stopJournalRotation();
+  if (journalNews.length < 2 || journalReducedMotion.matches || document.hidden || journalPointerInside || journalFocusInside) return;
+  journalRotationTimer = window.setInterval(() => showJournalNews(journalCurrentIndex + 1), JOURNAL_ROTATION_MS);
+}
+function showJournalNews(nextIndex) {
+  if (journalNews.length < 2) return;
+  journalCurrentIndex = (nextIndex % journalNews.length + journalNews.length) % journalNews.length;
+  const story = document.getElementById('latestJournalNews');
+  if (journalTransitionTimer !== null) window.clearTimeout(journalTransitionTimer);
+  if (story && !journalReducedMotion.matches) story.classList.add('is-changing');
+  journalTransitionTimer = window.setTimeout(() => {
+    renderCurrentJournalNews();
+    if (story) requestAnimationFrame(() => story.classList.remove('is-changing'));
+    journalTransitionTimer = null;
+  }, story && !journalReducedMotion.matches ? 150 : 0);
+  startJournalRotation();
+}
+function renderLatestJournalNews(items) {
+  const incoming = (Array.isArray(items) ? items : [items])
+    .filter(item => item && typeof item === 'object' && typeof item.title === 'string' && item.title.trim())
+    .slice(0, 3);
+  journalNews = incoming.length ? incoming : fallbackJournalNewsFromMarkup();
+  journalCurrentIndex = 0;
+  renderCurrentJournalNews();
+  startJournalRotation();
+}
+function setupJournalCarouselControls() {
+  const card = document.querySelector('.sidebar-news-card');
+  const previous = document.getElementById('sidebarJournalPrev');
+  const next = document.getElementById('sidebarJournalNext');
+  const dots = document.getElementById('sidebarJournalDots');
+  if (previous) previous.addEventListener('click', () => showJournalNews(journalCurrentIndex - 1));
+  if (next) next.addEventListener('click', () => showJournalNews(journalCurrentIndex + 1));
+  if (dots) dots.addEventListener('click', event => {
+    const dot = event.target.closest('[data-journal-index]');
+    if (dot) showJournalNews(Number(dot.dataset.journalIndex));
+  });
+  if (card) {
+    card.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'touch') { journalPointerInside = true; stopJournalRotation(); }
+    });
+    card.addEventListener('pointerleave', event => {
+      if (event.pointerType !== 'touch') { journalPointerInside = false; startJournalRotation(); }
+    });
+    card.addEventListener('focusin', () => { journalFocusInside = true; stopJournalRotation(); });
+    card.addEventListener('focusout', event => {
+      if (!card.contains(event.relatedTarget)) { journalFocusInside = false; startJournalRotation(); }
+    });
+  }
+  document.addEventListener('visibilitychange', () => document.hidden ? stopJournalRotation() : startJournalRotation());
+  const onMotionPreferenceChange = () => journalReducedMotion.matches ? stopJournalRotation() : startJournalRotation();
+  if (typeof journalReducedMotion.addEventListener === 'function') journalReducedMotion.addEventListener('change', onMotionPreferenceChange);
+  else if (typeof journalReducedMotion.addListener === 'function') journalReducedMotion.addListener(onMotionPreferenceChange);
 }
 async function loadLatestJournalNews() {
   try {
@@ -87,13 +189,16 @@ async function loadLatestJournalNews() {
     const latest = articles
       .filter(item => item && typeof item.title === 'string' && item.title.trim()
         && typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)))
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-    if (latest.length) renderLatestJournalNews(latest[0]);
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .slice(0, 3);
+    renderLatestJournalNews(latest);
   } catch (error) {
-    // O card já traz a notícia mais recente conhecida como reserva; mantém a interface mesmo offline.
-    console.warn('Não foi possível atualizar a notícia do Jornal FutSENAI.', error);
+    // Mantém a notícia de reserva presente no HTML se o feed estiver indisponível.
+    console.warn('Não foi possível atualizar as notícias do Jornal FutSENAI.', error);
+    renderLatestJournalNews(fallbackJournalNewsFromMarkup());
   }
 }
+setupJournalCarouselControls();
 function avatar(person, extraClass = '') {
   const classes = `player-avatar ${extraClass}`.trim();
   const photoPath = person?.photo_path && state.readOnly
@@ -804,7 +909,7 @@ function drawTeams() {
       if (entry) cardIndexByPlayer.set(entry, cardIndex++);
     });
   }
-  const deckHeader = `<div class="draw-stage-heading"><div class="draw-stage-title"><span class="draw-stage-kicker"><i class="draw-stage-pulse"></i>SORTEIO DE CARTAS</span><strong>Revele os jogadores</strong><small>Clique no baralho para revelar uma carta por vez.</small><span class="draw-stage-progress" id="drawStageProgress" role="status">0 de ${cardIndex} jogadores revelados</span></div><button type="button" class="draw-deck" data-action="reveal-next-player" aria-label="Revelar próximo jogador"><span class="draw-deck-cards" aria-hidden="true"><span class="draw-deck-card draw-deck-card-shadow"></span><span class="draw-deck-card draw-deck-card-mid">⚽︎</span><span class="draw-deck-card draw-deck-card-top"><b>FS</b><i>✦</i></span></span><span class="draw-deck-hint">CLIQUE PARA REVELAR</span></button></div>`;
+  const deckHeader = `<div class="draw-stage-heading"><div class="draw-stage-title"><span class="draw-stage-kicker"><i class="draw-stage-pulse"></i>SORTEIO DE CARTAS</span><strong>Revele os jogadores</strong><small>Clique no baralho para revelar uma carta por vez.</small><span class="draw-stage-progress" id="drawStageProgress" role="status">0 de ${cardIndex} jogadores revelados</span></div><div class="draw-stage-actions"><button type="button" class="btn btn-secondary draw-reroll-button" data-action="reroll-teams">↻ Re-sortear times</button><button type="button" class="draw-deck" data-action="reveal-next-player" aria-label="Revelar próximo jogador"><span class="draw-deck-cards" aria-hidden="true"><span class="draw-deck-card draw-deck-card-shadow"></span><span class="draw-deck-card draw-deck-card-mid">⚽︎</span><span class="draw-deck-card draw-deck-card-top"><b>FS</b><i>✦</i></span></span><span class="draw-deck-hint">CLIQUE PARA REVELAR</span></button></div></div>`;
   results.dataset.revealedCount = '0';
   results.classList.remove('is-complete');
   results.innerHTML = deckHeader + sortedTeams.map(team => {
@@ -1113,7 +1218,7 @@ document.addEventListener('click', async event => {
     else if (action === 'clear-players') {
       modalRoot.querySelectorAll('.participant-check').forEach(check => { check.checked = false; check.closest('.participant-row').querySelector('.participant-side').disabled = true; }); clearTeamDraw(); updateTeamCounts();
     }
-    else if (action === 'draw-teams') drawTeams();
+    else if (action === 'draw-teams' || action === 'reroll-teams') drawTeams();
     else if (action === 'reveal-next-player') revealNextPlayer(button);
   } catch (error) { toast(error.message, 'error'); }
 });
