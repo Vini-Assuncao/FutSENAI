@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "nextIds": {
     "players": 15,
-    "matches": 7,
-    "match_players": 50,
-    "goals": 210
+    "matches": 8,
+    "match_players": 54,
+    "goals": 220
   },
   "players": [
     {
@@ -99,6 +99,11 @@
     {
       "id": 6,
       "played_on": "2026-10-14",
+      "opponent_type": "second_year"
+    },
+    {
+      "id": 7,
+      "played_on": "2026-10-21",
       "opponent_type": "second_year"
     }
   ],
@@ -281,6 +286,34 @@
       "player_id": 9,
       "team_side": "A",
       "assists": 0
+    },
+    {
+      "id": 50,
+      "match_id": 7,
+      "player_id": 4,
+      "team_side": "A",
+      "assists": 0
+    },
+    {
+      "id": 51,
+      "match_id": 7,
+      "player_id": 7,
+      "team_side": "A",
+      "assists": 0
+    },
+    {
+      "id": 52,
+      "match_id": 7,
+      "player_id": 10,
+      "team_side": "A",
+      "assists": 0
+    },
+    {
+      "id": 53,
+      "match_id": 7,
+      "player_id": 9,
+      "team_side": "A",
+      "assists": 1
     }
   ],
   "goals": [
@@ -611,6 +644,41 @@
       "match_id": 5,
       "team_side": "B",
       "player_id": 2,
+      "goal_type": "normal"
+    },
+    {
+      "id": 215,
+      "match_id": 7,
+      "team_side": "A",
+      "player_id": 7,
+      "goal_type": "normal"
+    },
+    {
+      "id": 216,
+      "match_id": 7,
+      "team_side": "A",
+      "player_id": 10,
+      "goal_type": "normal"
+    },
+    {
+      "id": 217,
+      "match_id": 7,
+      "team_side": "A",
+      "player_id": 9,
+      "goal_type": "normal"
+    },
+    {
+      "id": 218,
+      "match_id": 7,
+      "team_side": "B",
+      "player_id": null,
+      "goal_type": "normal"
+    },
+    {
+      "id": 219,
+      "match_id": 7,
+      "team_side": "B",
+      "player_id": null,
       "goal_type": "normal"
     }
   ]
