@@ -20,6 +20,8 @@ const modalRoot = document.getElementById('modalRoot');
 const toastStack = document.getElementById('toastStack');
 const readOnlyNotice = document.getElementById('readOnlyNotice');
 const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'Partidas', stats: 'Estatísticas', matchDetail: 'Detalhes da partida' };
+const JOURNAL_HOME_URL = 'https://pietro-guedes.github.io/FutSenai-Jornal/';
+const JOURNAL_FEED_URL = 'https://raw.githubusercontent.com/Pietro-Guedes/FutSenai-Jornal/main/noticias.json';
 const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-goal', 'delete-match', 'delete-goal', 'delete-assist']);
 
 function esc(value) {
@@ -27,6 +29,70 @@ function esc(value) {
 }
 function initials(name) {
   return String(name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase();
+}
+function formatJournalDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Data indisponível';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo'
+  }).format(date).replace('.', '');
+}
+function renderLatestJournalNews(item) {
+  if (!item || typeof item !== 'object') return;
+  const link = document.getElementById('latestJournalNews');
+  const cover = document.getElementById('sidebarJournalCover');
+  const tag = document.getElementById('sidebarJournalTag');
+  const date = document.getElementById('sidebarJournalDate');
+  const title = document.getElementById('sidebarJournalTitle');
+  const excerpt = document.getElementById('sidebarJournalExcerpt');
+  if (!link || !cover || !tag || !date || !title || !excerpt) return;
+
+  const headline = String(item.title || 'Última notícia do Jornal FutSENAI').trim();
+  const providedImage = typeof item.image === 'string' ? item.image.trim() : '';
+  let coverUrl = '';
+  if (providedImage) {
+    try {
+      const parsedImageUrl = new URL(providedImage, JOURNAL_HOME_URL);
+      if (parsedImageUrl.protocol === 'https:' || parsedImageUrl.protocol === 'http:') {
+        coverUrl = parsedImageUrl.href;
+      }
+    } catch {
+      // Usa a capa ilustrativa se o endereço da imagem não for válido.
+    }
+  }
+  cover.src = coverUrl || 'jornal-capa-padrao.svg';
+  cover.alt = coverUrl ? `Capa da matéria: ${headline}` : `Capa ilustrativa da matéria: ${headline}`;
+  cover.onerror = () => {
+    if (!cover.src.endsWith('/jornal-capa-padrao.svg')) {
+      cover.src = 'jornal-capa-padrao.svg';
+      cover.alt = `Capa ilustrativa da matéria: ${headline}`;
+    }
+  };
+
+  link.href = JOURNAL_HOME_URL;
+  link.setAttribute('aria-label', `Ler no Jornal FutSENAI: ${headline}`);
+  tag.textContent = String(item.category || 'NOTÍCIA').trim().toLocaleUpperCase('pt-BR');
+  title.textContent = headline;
+  date.dateTime = String(item.createdAt || '');
+  date.textContent = formatJournalDate(item.createdAt);
+  const cleanContent = String(item.content || '').replace(/\s+/g, ' ').trim();
+  excerpt.textContent = cleanContent.length > 190 ? `${cleanContent.slice(0, 187).trimEnd()}…` : cleanContent;
+}
+async function loadLatestJournalNews() {
+  try {
+    const response = await fetch(`${JOURNAL_FEED_URL}?_=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Feed do jornal respondeu ${response.status}`);
+    const articles = await response.json();
+    if (!Array.isArray(articles)) throw new Error('Formato de notícias inválido');
+    const latest = articles
+      .filter(item => item && typeof item.title === 'string' && item.title.trim()
+        && typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    if (latest.length) renderLatestJournalNews(latest[0]);
+  } catch (error) {
+    // O card já traz a notícia mais recente conhecida como reserva; mantém a interface mesmo offline.
+    console.warn('Não foi possível atualizar a notícia do Jornal FutSENAI.', error);
+  }
 }
 function avatar(person, extraClass = '') {
   const classes = `player-avatar ${extraClass}`.trim();
@@ -351,11 +417,7 @@ async function renderDashboard() {
       <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Artilharia da turma</h2><div class="panel-subtitle">Gols</div></div><button class="text-action" data-action="go-stats">Ranking →</button></div><div class="scorer-list">${scorerHtml}</div></article>
     </section>
     <section class="dashboard-bottom">
-      <article class="panel how-it-works-panel"><div class="panel-head"><div><h2 class="panel-title">O foco é a resenha</h2><div class="panel-subtitle">As equipes mudam. As estatísticas dos jogadores ficam.</div></div></div><div class="how-it-works-list">
-        <div class="how-it-works-item"><span class="quick-action-icon">⚽︎</span><div><strong>Artilharia individual</strong><p>Conte os gols de cada pessoa de uma vez, sem registrar lance por lance.</p></div></div>
-        <div class="how-it-works-item"><span class="quick-action-icon">♟</span><div><strong>Escalação personalizada</strong><p>Monte novas equipes a cada partida, inclusive com quantidades diferentes de jogadores.</p></div></div>
-        <div class="how-it-works-item"><span class="quick-action-icon">▦</span><div><strong>Histórico da turma</strong><p>Consulte os placares e as estatísticas individuais de todos os jogos registrados.</p></div></div>
-      </div></article>
+      <article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></div></article>
       <article class="panel quick-panel"><div class="panel-head"><div><h2 class="panel-title">Atalhos rápidos</h2><div class="panel-subtitle">Mais praticidade para organizar o jogo</div></div></div><div class="quick-actions">
         <button class="quick-action" data-action="new-match"><span class="quick-action-icon">⚑︎</span><span><strong>${state.readOnly ? 'Testar sorteio' : 'Nova partida'}</strong><span>${state.readOnly ? 'Prévia sem criar partida' : 'Monte os times e registre'}</span></span></button>
         <button class="quick-action" data-action="new-player"><span class="quick-action-icon">♟︎</span><span><strong>Novo jogador</strong><span>Adicione um amigo</span></span></button>
@@ -1085,6 +1147,9 @@ document.getElementById('quickAddPlayer').addEventListener('click', () => {
 document.getElementById('mobileMenu').addEventListener('click', () => {
   setSidebarOpen(!document.getElementById('sidebar').classList.contains('open'));
 });
+
+// Atualiza o card do jornal sem bloquear o carregamento do painel.
+void loadLatestJournalNews();
 
 // Start by checking that the backend is reachable, then render the dashboard.
 (async function boot() {
