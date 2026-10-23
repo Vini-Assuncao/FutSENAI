@@ -62,7 +62,7 @@ function safeRemoveUpload(photoPath) {
   const file = path.join(publicDirectory, photoPath.replace(/^\//, ''));
   if (file.startsWith(uploadsDirectory) && fs.existsSync(file)) fs.unlink(file, () => {});
 }
-function parsePlayerBody(body, existingPhoto = null, uploadedFile = null, existingQuality = 3) {
+function parsePlayerBody(body, existingPhoto = null, existingReservePhoto = null, uploadedPhoto = null, uploadedReservePhoto = null, existingQuality = 3) {
   const name = requiredText(body.name, 'nome', 100);
   const quality = Number(body.quality ?? existingQuality);
   if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
@@ -71,8 +71,12 @@ function parsePlayerBody(body, existingPhoto = null, uploadedFile = null, existi
   return {
     name,
     quality,
-    photoPath: uploadedFile ? `/uploads/${uploadedFile.filename}` : existingPhoto
+    photoPath: uploadedPhoto ? `/uploads/${uploadedPhoto.filename}` : existingPhoto,
+    reservePhotoPath: uploadedReservePhoto ? `/uploads/${uploadedReservePhoto.filename}` : existingReservePhoto
   };
+}
+function uploadedPlayerPhotos(files) {
+  return ['photo', 'reserve_photo'].flatMap(field => files?.[field] || []);
 }
 function getScores(matchId, data = dataStore.getData()) {
   return data.goals.reduce((scores, goal) => {
@@ -162,12 +166,12 @@ function getMatchDetail(matchId, data = dataStore.getData()) {
     .filter(participant => participant.match_id === matchId)
     .map(participant => {
       const player = playersById.get(participant.player_id);
-      return { id: player.id, name: player.name, photo_path: player.photo_path, is_active: player.is_active, team_side: participant.team_side, assists: Number(participant.assists) || 0 };
+      return { id: player.id, name: player.name, photo_path: player.photo_path, photo_reserve_path: player.photo_reserve_path, is_active: player.is_active, team_side: participant.team_side, assists: Number(participant.assists) || 0 };
     })
     .sort((left, right) => left.team_side.localeCompare(right.team_side) || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
   const goals = data.goals.filter(goal => goal.match_id === matchId).sort((left, right) => left.id - right.id).map(goal => {
     const player = playersById.get(goal.player_id);
-    return { ...goal, player_name: player?.name ?? null, player_photo: player?.photo_path ?? null };
+    return { ...goal, player_name: player?.name ?? null, player_photo: player?.photo_path ?? null, player_reserve_photo: player?.photo_reserve_path ?? null };
   });
   return { ...summary, players, goals };
 }
@@ -199,39 +203,53 @@ app.get('/api/players', (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.post('/api/players', upload.single('photo'), (req, res, next) => {
+app.post('/api/players', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'reserve_photo', maxCount: 1 }]), (req, res, next) => {
   try {
-    const player = parsePlayerBody(req.body, null, req.file);
+    const files = req.files;
+    const player = parsePlayerBody(req.body, null, null, files?.photo?.[0], files?.reserve_photo?.[0]);
     const id = dataStore.transaction(data => {
       const id = data.nextIds.players++;
       data.players.push({
         id,
         name: player.name,
         photo_path: player.photoPath,
+        photo_reserve_path: player.reservePhotoPath,
         quality: player.quality,
         is_active: 1
       });
       return id;
     });
     res.status(201).json({ message: 'Jogador cadastrado com sucesso.', data: getPlayerStats(id) });
-  } catch (error) { if (req.file) safeRemoveUpload(`/uploads/${req.file.filename}`); next(error); }
+  } catch (error) {
+    for (const file of uploadedPlayerPhotos(req.files)) safeRemoveUpload(`/uploads/${file.filename}`);
+    next(error);
+  }
 });
 
-app.put('/api/players/:id', upload.single('photo'), (req, res, next) => {
+app.put('/api/players/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'reserve_photo', maxCount: 1 }]), (req, res, next) => {
   try {
     const id = validId(req.params.id);
     const existing = dataStore.getData().players.find(item => item.id === id);
     if (!existing) throw httpError(404, 'Jogador não encontrado.');
-    const player = parsePlayerBody(req.body, existing.photo_path, req.file, existing.quality);
+    const files = req.files;
+    const uploadedPhoto = files?.photo?.[0];
+    const uploadedReservePhoto = files?.reserve_photo?.[0];
+    const player = parsePlayerBody(req.body, existing.photo_path, existing.photo_reserve_path, uploadedPhoto, uploadedReservePhoto, existing.quality);
     dataStore.transaction(data => {
       const current = data.players.find(item => item.id === id);
       current.name = player.name;
       current.photo_path = player.photoPath;
+      current.photo_reserve_path = player.reservePhotoPath;
       current.quality = player.quality;
     });
-    if (req.file && existing.photo_path !== player.photoPath) safeRemoveUpload(existing.photo_path);
+    for (const oldPhoto of new Set([existing.photo_path, existing.photo_reserve_path])) {
+      if (oldPhoto && oldPhoto !== player.photoPath && oldPhoto !== player.reservePhotoPath) safeRemoveUpload(oldPhoto);
+    }
     res.json({ message: 'Jogador atualizado com sucesso.', data: getPlayerStats(id) });
-  } catch (error) { if (req.file) safeRemoveUpload(`/uploads/${req.file.filename}`); next(error); }
+  } catch (error) {
+    for (const file of uploadedPlayerPhotos(req.files)) safeRemoveUpload(`/uploads/${file.filename}`);
+    next(error);
+  }
 });
 
 app.patch('/api/players/:id/archive', (req, res, next) => {
@@ -263,7 +281,7 @@ app.delete('/api/players/:id', (req, res, next) => {
       data.players = data.players.filter(item => item.id !== id);
       data.goals.forEach(goal => { if (goal.player_id === id) goal.player_id = null; });
     });
-    safeRemoveUpload(player.photo_path);
+    for (const photo of new Set([player.photo_path, player.photo_reserve_path])) safeRemoveUpload(photo);
     res.json({ message: 'Jogador excluído com sucesso.', archived: false });
   } catch (error) { next(error); }
 });

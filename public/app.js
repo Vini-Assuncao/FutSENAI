@@ -1,3 +1,24 @@
+const ANTI_RESENHA_STORAGE_KEY = 'futsenai.anti-resenha';
+
+function loadAntiResenhaPreference() {
+  try {
+    return window.localStorage.getItem(ANTI_RESENHA_STORAGE_KEY) === 'true';
+  } catch (error) {
+    console.warn('Não foi possível carregar a preferência do modo anti-resenha.', error);
+    return false;
+  }
+}
+
+function saveAntiResenhaPreference(enabled) {
+  try {
+    window.localStorage.setItem(ANTI_RESENHA_STORAGE_KEY, String(enabled));
+    return true;
+  } catch (error) {
+    console.warn('Não foi possível salvar a preferência do modo anti-resenha.', error);
+    return false;
+  }
+}
+
 const state = {
   view: 'dashboard',
   dashboard: null,
@@ -12,6 +33,7 @@ const state = {
   statsSort: 'goals',
   statsSortDirection: 'desc',
   readOnly: false,
+  antiResenha: loadAntiResenhaPreference(),
   staticData: null
 };
 
@@ -37,6 +59,8 @@ let journalRotationTimer = null;
 let journalTransitionTimer = null;
 let journalPointerInside = false;
 let journalFocusInside = false;
+let brandClickCount = 0;
+let brandClickTimer = null;
 
 function formatJournalDate(value) {
   const date = new Date(value);
@@ -197,9 +221,12 @@ async function loadLatestJournalNews() {
 setupJournalCarouselControls();
 function avatar(person, extraClass = '') {
   const classes = `player-avatar ${extraClass}`.trim();
-  const photoPath = person?.photo_path && state.readOnly
-    ? new URL(person.photo_path.replace(/^\/+/, ''), document.baseURI).href
+  const selectedPhoto = state.antiResenha
+    ? person?.photo_reserve_path || person?.photo_path
     : person?.photo_path;
+  const photoPath = selectedPhoto && state.readOnly
+    ? new URL(selectedPhoto.replace(/^\/+/, ''), document.baseURI).href
+    : selectedPhoto;
   const image = photoPath ? `<img src="${esc(photoPath)}" alt="Foto de ${esc(person.name)}" loading="lazy">` : esc(initials(person?.nickname || person?.name));
   return `<div class="${classes}">${image}</div>`;
 }
@@ -341,13 +368,13 @@ function staticMatchDetail(matchId, data) {
     players: data.match_players.filter(participant => participant.match_id === matchId)
       .map(participant => {
         const player = playersById.get(participant.player_id);
-        return { id: player.id, name: player.name, photo_path: player.photo_path, is_active: player.is_active, team_side: participant.team_side, assists: Number(participant.assists) || 0 };
+        return { id: player.id, name: player.name, photo_path: player.photo_path, photo_reserve_path: player.photo_reserve_path, is_active: player.is_active, team_side: participant.team_side, assists: Number(participant.assists) || 0 };
       })
       .sort((left, right) => left.team_side.localeCompare(right.team_side) || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' })),
     goals: data.goals.filter(goal => goal.match_id === matchId).sort((left, right) => left.id - right.id)
       .map(goal => {
         const player = playersById.get(goal.player_id);
-        return { ...goal, player_name: player?.name ?? null, player_photo: player?.photo_path ?? null };
+        return { ...goal, player_name: player?.name ?? null, player_photo: player?.photo_path ?? null, player_reserve_photo: player?.photo_reserve_path ?? null };
       })
   };
 }
@@ -439,7 +466,9 @@ function setLoading(message = 'Carregando...') {
   pageContent.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>${esc(message)}</p></div>`;
 }
 function updateChrome() {
+  document.body.classList.toggle('anti-resenha-mode', state.antiResenha);
   document.getElementById('pageCrumb').textContent = viewNames[state.view] || 'FutSENAI';
+  document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === (state.view === 'matchDetail' ? 'matches' : state.view)));
   const date = new Date();
   document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(date).replace('.', '');
@@ -517,8 +546,8 @@ async function renderDashboard() {
       <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Últimas partidas</h2><div class="panel-subtitle">${state.statsScope === 'interclass' ? 'Somente jogos contra o 2º Ano' : 'Somente jogos entre jogadores do 3º A'}</div></div><button class="text-action" data-action="go-matches">Ver todas →</button></div><div class="match-list">${recentHtml}</div></article>
       <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Artilharia da turma</h2><div class="panel-subtitle">Gols</div></div><button class="text-action" data-action="go-stats">Ranking →</button></div><div class="scorer-list">${scorerHtml}</div></article>
     </section>
-    <section class="dashboard-bottom">
-      <article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></div></article>
+    <section class="dashboard-bottom ${state.antiResenha ? 'anti-resenha-dashboard' : ''}">
+      ${state.antiResenha ? '' : '<article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></div></article>'}
       <article class="panel quick-panel"><div class="panel-head"><div><h2 class="panel-title">Atalhos rápidos</h2><div class="panel-subtitle">Mais praticidade para organizar o jogo</div></div></div><div class="quick-actions">
         <button class="quick-action" data-action="new-match"><span class="quick-action-icon">⚑︎</span><span><strong>${state.readOnly ? 'Testar sorteio' : 'Nova partida'}</strong><span>${state.readOnly ? 'Prévia sem criar partida' : 'Monte os times e registre'}</span></span></button>
         <button class="quick-action" data-action="new-player"><span class="quick-action-icon">♟︎</span><span><strong>Novo jogador</strong><span>Adicione um amigo</span></span></button>
@@ -694,23 +723,34 @@ function closeModal() {
 function openPlayerModal(player = null) {
   const editing = Boolean(player);
   const selectedQuality = Number(player?.quality) || 3;
-  const body = `<form id="playerForm" enctype="multipart/form-data"><div class="modal-body"><div class="form-grid"><div class="form-field full"><label for="playerName">Nome do jogador *</label><input id="playerName" name="name" maxlength="100" required value="${esc(player?.name || '')}" placeholder="Ex.: Gabriel Santos"></div><div class="form-field full"><label for="playerQuality">Qualidade para o sorteio *</label><select id="playerQuality" name="quality" required>${[1, 2, 3, 4, 5].map(quality => `<option value="${quality}" ${selectedQuality === quality ? 'selected' : ''}>${quality} · ${'★'.repeat(quality)}${'☆'.repeat(5 - quality)}</option>`).join('')}</select><div class="form-help">Avalie de 1 a 5 para ajudar a equilibrar os times sorteados.</div></div><div class="form-field full"><label>Foto do jogador <span class="optional">(opcional)</span></label><div class="photo-upload"><div class="photo-preview" id="photoPreview">${player?.photo_path ? `<img src="${esc(player.photo_path)}" alt="Foto atual">` : esc(initials(player?.name || 'FS'))}</div><div style="min-width:0;flex:1"><input id="playerPhoto" name="photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help" style="margin-top:7px">JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div></div></div><div class="modal-footer" style="display:none"></div></form>`;
+  const previewImage = (photoPath, alt) => {
+    if (!photoPath) return esc(initials(player?.name || 'FS'));
+    const imagePath = state.readOnly ? new URL(photoPath.replace(/^\/+/, ''), document.baseURI).href : photoPath;
+    return `<img src="${esc(imagePath)}" alt="${alt}">`;
+  };
+  const body = `<form id="playerForm" enctype="multipart/form-data"><div class="modal-body"><div class="form-grid"><div class="form-field full"><label for="playerName">Nome do jogador *</label><input id="playerName" name="name" maxlength="100" required value="${esc(player?.name || '')}" placeholder="Ex.: Gabriel Santos"></div><div class="form-field full"><label for="playerQuality">Qualidade para o sorteio *</label><select id="playerQuality" name="quality" required>${[1, 2, 3, 4, 5].map(quality => `<option value="${quality}" ${selectedQuality === quality ? 'selected' : ''}>${quality} · ${'★'.repeat(quality)}${'☆'.repeat(5 - quality)}</option>`).join('')}</select><div class="form-help">Avalie de 1 a 5 para ajudar a equilibrar os times sorteados.</div></div><div class="form-field full"><label for="playerPhoto">Foto principal <span class="optional">(opcional)</span></label><div class="photo-upload"><div class="photo-preview" id="photoPreview">${previewImage(player?.photo_path, 'Foto principal atual')}</div><div class="photo-upload-input"><input id="playerPhoto" name="photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div><div class="form-field full"><label for="reservePlayerPhoto">Foto reserva <span class="optional">(modo anti-resenha)</span></label><div class="photo-upload"><div class="photo-preview" id="reservePhotoPreview">${previewImage(player?.photo_reserve_path, 'Foto reserva atual')}</div><div class="photo-upload-input"><input id="reservePlayerPhoto" name="reserve_photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">Será exibida no modo anti-resenha. JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div></div></div><div class="modal-footer" style="display:none"></div></form>`;
   const footer = `<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="playerForm" class="btn btn-primary">${editing ? 'Salvar alterações' : 'Cadastrar jogador'}</button>`;
-  modal(editing ? 'Editar jogador' : 'Novo jogador', editing ? 'Atualize o nome, a qualidade ou a foto.' : 'Cadastre o nome, a qualidade e, se quiser, uma foto do jogador.', body, footer);
-  const photoInput = document.getElementById('playerPhoto');
-  photoInput?.addEventListener('change', () => {
-    const file = photoInput.files?.[0];
-    const preview = document.getElementById('photoPreview');
-    if (!preview) return;
-    if (!file) { preview.innerHTML = player?.photo_path ? `<img src="${esc(player.photo_path)}" alt="Foto atual">` : esc(initials(document.getElementById('playerName').value || 'FS')); return; }
-    if (file.size > 5 * 1024 * 1024) { photoInput.value = ''; toast('A imagem deve ter no máximo 5 MB.', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = () => { preview.innerHTML = `<img src="${reader.result}" alt="Prévia da foto">`; };
-    reader.readAsDataURL(file);
-  });
+  modal(editing ? 'Editar jogador' : 'Novo jogador', editing ? 'Atualize o nome, a qualidade ou as fotos.' : 'Cadastre o nome, a qualidade e as fotos do jogador.', body, footer);
+  const setupPhotoPreview = (inputId, previewId, photoPath, alt) => {
+    const photoInput = document.getElementById(inputId);
+    photoInput?.addEventListener('change', () => {
+      const file = photoInput.files?.[0];
+      const preview = document.getElementById(previewId);
+      if (!preview) return;
+      if (!file) { preview.innerHTML = previewImage(photoPath, alt); return; }
+      if (file.size > 5 * 1024 * 1024) { photoInput.value = ''; toast('A imagem deve ter no máximo 5 MB.', 'error'); return; }
+      const reader = new FileReader();
+      reader.onload = () => { preview.innerHTML = `<img src="${esc(reader.result)}" alt="Prévia da foto">`; };
+      reader.readAsDataURL(file);
+    });
+  };
+  setupPhotoPreview('playerPhoto', 'photoPreview', player?.photo_path, 'Foto principal atual');
+  setupPhotoPreview('reservePlayerPhoto', 'reservePhotoPreview', player?.photo_reserve_path, 'Foto reserva atual');
   document.getElementById('playerName')?.addEventListener('input', () => {
-    const preview = document.getElementById('photoPreview');
-    if (preview && !preview.querySelector('img')) preview.textContent = initials(document.getElementById('playerName').value || 'FS');
+    for (const previewId of ['photoPreview', 'reservePhotoPreview']) {
+      const preview = document.getElementById(previewId);
+      if (preview && !preview.querySelector('img')) preview.textContent = initials(document.getElementById('playerName').value || 'FS');
+    }
   });
 }
 function updateTeamCounts() {
@@ -1158,6 +1198,23 @@ async function deleteAssist(matchId, playerId) {
 
 // Delegated click actions keep the interface simple as each view is redrawn.
 document.addEventListener('click', async event => {
+  if (event.target.closest('.brand, .mobile-brand')) {
+    brandClickCount++;
+    if (brandClickTimer !== null) window.clearTimeout(brandClickTimer);
+    brandClickTimer = window.setTimeout(() => { brandClickCount = 0; brandClickTimer = null; }, 1600);
+    if (brandClickCount >= 5) {
+      event.preventDefault();
+      brandClickCount = 0;
+      window.clearTimeout(brandClickTimer);
+      brandClickTimer = null;
+      state.antiResenha = !state.antiResenha;
+      const preferenceSaved = saveAntiResenhaPreference(state.antiResenha);
+      updateChrome();
+      toast(`${state.antiResenha ? 'Modo anti-resenha ativado.' : 'Modo normal ativado.'}${preferenceSaved ? '' : ' A preferência não pôde ser salva neste navegador.'}`, preferenceSaved ? 'success' : 'warning');
+      await renderCurrent();
+      return;
+    }
+  }
   const sidebar = document.getElementById('sidebar');
   if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !event.target.closest('#mobileMenu')) {
     setSidebarOpen(false);
@@ -1254,6 +1311,7 @@ void loadLatestJournalNews();
 
 // Start by checking that the backend is reachable, then render the dashboard.
 (async function boot() {
+  updateChrome();
   try {
     await api('/api/health');
     await renderDashboard();

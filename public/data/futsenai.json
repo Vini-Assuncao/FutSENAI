@@ -19,14 +19,16 @@
       "name": "Thiago",
       "photo_path": "/uploads/7adcd738-c114-4e8c-8aa5-24db63a728e5.png",
       "is_active": 1,
-      "quality": 5
+      "quality": 5,
+      "photo_reserve_path": "/uploads/478fe557-3f82-436e-b004-d30455d75c4a.png"
     },
     {
       "id": 3,
       "name": "Heitor",
-      "photo_path": "/uploads/e309f969-32d7-4c61-9b14-eec8ae753fe0.png",
+      "photo_path": "/uploads/ecdab063-7f6d-43cb-affd-6f12caf133b2.png",
       "is_active": 1,
-      "quality": 3
+      "quality": 3,
+      "photo_reserve_path": "/uploads/4c8e61cf-17d9-4329-bddc-69dd30122af4.png"
     },
     {
       "id": 4,
@@ -54,7 +56,8 @@
       "name": "Dutra",
       "photo_path": "/uploads/3548b843-8f4d-4755-beb0-f5181c51952b.png",
       "is_active": 1,
-      "quality": 3
+      "quality": 3,
+      "photo_reserve_path": "/uploads/50c49567-164d-4da5-8cdd-ded10b654615.png"
     },
     {
       "id": 8,

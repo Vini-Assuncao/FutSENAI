@@ -379,3 +379,16 @@
 .draw-reroll-button{padding:7px 9px;font-size:9px;letter-spacing:-.1px;gap:4px}
 @media(max-width:760px){.dashboard-ad-content img{max-height:185px}}
 @media(max-width:560px){.draw-stage-actions{gap:0}.draw-reroll-button{font-size:8px;padding:6px 7px}.draw-stage-heading{gap:5px}}
+
+.anti-resenha-mode{--canvas:#f3f5f7;--line:#e2e6eb;--shadow:0 12px 36px rgba(26,35,46,.06)}
+.anti-resenha-mode .brand-mark{background:#d7193f;box-shadow:0 7px 15px #d7193f35}
+.anti-resenha-mode .brand-copy strong span{color:#d7193f}
+.anti-resenha-mode .brand-copy small{display:none}
+.anti-resenha-indicator{display:inline-block;width:6px;height:6px;margin-left:7px;border-radius:50%;background:#8292a3;vertical-align:middle}
+.anti-resenha-indicator[hidden]{display:none}
+.mobile-brand .anti-resenha-indicator{margin-left:1px}
+.anti-resenha-mode .player-avatar img{filter:saturate(.85)}
+.anti-resenha-dashboard .quick-panel{grid-column:1/-1}
+.photo-upload-input{min-width:0;flex:1}
+.photo-upload-input .form-help{margin-top:7px}
+@media(max-width:760px){.breadcrumb{gap:7px}}
