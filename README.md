@@ -6,6 +6,7 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 
 - **Painel inicial:** jogadores ativos, partidas registradas, total e média de gols, partidas recentes e artilharia.
 - **Jogadores:** cadastro e edição do nome, qualidade de 1 a 5, foto principal e foto reserva opcional. A foto reserva é usada na apresentação alternativa; se estiver ausente, a foto principal continua sendo exibida. A qualidade é usada para equilibrar os times sorteados; os cadastros existentes recebem qualidade 3.
+- **Fotos ampliadas:** clique ou use Enter/Espaço em uma foto de jogador para abri-la em um pop-up quadrado de tamanho uniforme. Feche clicando fora, no botão × ou pressionando Esc.
 - **Modo anti-resenha:** clique cinco vezes seguidas no logo FutSENAI para alternar o modo. A escolha fica salva neste navegador e é indicada discretamente por um ponto ao lado da marca; no modo alternativo, o slogan é ocultado.
 - **Ranking interativo:** na página de estatísticas, clique nos cabeçalhos J, G, V, E, D ou Aprov. para ordenar pelos respectivos números. O padrão é gols, com aproveitamento como critério de desempate.
 - **Preservação do histórico:** jogadores que já participaram de jogos podem ser arquivados e reativados, sem quebrar partidas passadas. Jogadores sem histórico podem ser excluídos.
@@ -18,7 +19,7 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Gol contra:** o jogador que fez o gol contra não recebe crédito de artilharia; o gol entra no placar do time adversário.
 - **Resumo de gols agrupado:** os gols aparecem agrupados por jogador e tipo. O botão de menos desfaz um gol por vez daquele grupo.
 - **Persistência real:** jogadores, partidas, escalações e gols são guardados em `public/data/futsenai.json`; as fotos principais e reservas ficam em `public/uploads/`.
-- **Jornal FutSENAI:** carrossel lateral compacto com até três notícias recentes, capas, tags, datas, navegação por setas e indicadores, rotação automática contínua e link para o jornal. Notícias publicadas nas últimas 12 horas recebem o destaque pulsante **“NOTÍCIA FRESCA!”**; o título aparece em letreiro horizontal contínuo e clicável no topo.
+- **Jornal FutSENAI:** carrossel lateral compacto com até três notícias recentes, capas, tags, datas, navegação e indicadores, rotação automática contínua e link para o jornal. Notícias publicadas nas últimas 12 horas recebem o destaque pulsante **“NOTÍCIA FRESCA!”**; o título aparece em letreiro horizontal contínuo e clicável no topo. Quando há notícia fresca, a data do topo fica oculta somente em telas mobile para dar mais espaço ao letreiro. No modo anti-resenha, as notícias da lateral e o letreiro ficam ocultos.
 - **Re-sortear times:** o botão no resultado gera uma nova divisão usando os mesmos jogadores que já foram selecionados.
 - **Leitura sem API:** quando a aplicação é servida como site estático sem a API Node, os dados publicados continuam disponíveis para consulta em modo somente leitura. Para cadastrar ou editar dados, use `npm start`.
 - **Interface responsiva:** design branco e vermelho para computadores e celulares.

@@ -189,11 +189,11 @@ function renderLatestJournalNews(items) {
     freshTickerText.textContent = headline;
     freshTickerRepeat.textContent = headline;
     freshTicker.setAttribute('aria-label', headline ? `Notícia fresca! Abrir Notícias FutSENAI: ${headline}` : 'Notícia fresca! Abrir Notícias FutSENAI');
-    freshTicker.hidden = state.antiResenha || !freshJournalNews;
   }
   journalCurrentIndex = 0;
   renderCurrentJournalNews();
   startJournalRotation();
+  updateChrome();
 }
 function setupJournalCarouselControls() {
   const previous = document.getElementById('sidebarJournalPrev');
@@ -234,7 +234,33 @@ function avatar(person, extraClass = '') {
     ? new URL(selectedPhoto.replace(/^\/+/, ''), document.baseURI).href
     : selectedPhoto;
   const image = photoPath ? `<img src="${esc(photoPath)}" alt="Foto de ${esc(person.name)}" loading="lazy">` : esc(initials(person?.nickname || person?.name));
-  return `<div class="${classes}">${image}</div>`;
+  const previewAttributes = photoPath ? ` role="button" tabindex="0" data-player-image aria-label="Ampliar foto de ${esc(person.name)}"` : '';
+  return `<div class="${classes}"${previewAttributes}>${image}</div>`;
+}
+function openPlayerImagePreview(image, alt) {
+  const overlay = document.createElement('div');
+  overlay.className = 'player-image-lightbox';
+  overlay.dataset.playerImageLightbox = '';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', alt);
+
+  const closeButton = document.createElement('button');
+  closeButton.className = 'player-image-lightbox-close';
+  closeButton.type = 'button';
+  closeButton.dataset.imagePreviewClose = '';
+  closeButton.setAttribute('aria-label', 'Fechar foto');
+  closeButton.textContent = '×';
+
+  const enlargedImage = document.createElement('img');
+  enlargedImage.src = image.currentSrc || image.src;
+  enlargedImage.alt = alt;
+
+  overlay.append(closeButton, enlargedImage);
+  modalRoot.replaceChildren(overlay);
+  modalRoot.dataset.open = 'true';
+  document.body.style.overflow = 'hidden';
+  closeButton.focus();
 }
 function shortDate(dateValue, withYear = false) {
   if (!dateValue) return 'Data não informada';
@@ -476,7 +502,9 @@ function updateChrome() {
   const journalCard = document.querySelector('.sidebar-news-card');
   if (journalCard) journalCard.hidden = state.antiResenha;
   const freshTicker = document.getElementById('freshNewsTicker');
-  if (freshTicker) freshTicker.hidden = state.antiResenha || !freshJournalNews || !isFreshJournalNews(freshJournalNews.createdAt);
+  const hasVisibleFreshNews = !state.antiResenha && Boolean(freshJournalNews && isFreshJournalNews(freshJournalNews.createdAt));
+  if (freshTicker) freshTicker.hidden = !hasVisibleFreshNews;
+  document.querySelector('.topbar')?.classList.toggle('has-fresh-news', hasVisibleFreshNews);
   document.getElementById('pageCrumb').textContent = viewNames[state.view] || 'FutSENAI';
   document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === (state.view === 'matchDetail' ? 'matches' : state.view)));
@@ -1237,6 +1265,17 @@ document.addEventListener('click', async event => {
     renderStatsContent();
     return;
   }
+  const imagePreview = event.target.closest('[data-player-image-lightbox]');
+  if (imagePreview && (event.target === imagePreview || event.target.closest('[data-image-preview-close]'))) {
+    closeModal();
+    return;
+  }
+  const playerImage = event.target.closest('[data-player-image]');
+  if (playerImage) {
+    const image = playerImage.querySelector('img');
+    if (image) openPlayerImagePreview(image, image.alt);
+    return;
+  }
   const navButton = event.target.closest('[data-view]');
   if (navButton) { await navigate(navButton.dataset.view); return; }
   const closeButton = event.target.closest('[data-modal-close]');
@@ -1284,6 +1323,18 @@ document.addEventListener('click', async event => {
     else if (action === 'draw-teams' || action === 'reroll-teams') drawTeams();
     else if (action === 'reveal-next-player') revealNextPlayer(button);
   } catch (error) { toast(error.message, 'error'); }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && modalRoot.querySelector('[data-player-image-lightbox]')) {
+    closeModal();
+    return;
+  }
+  if ((event.key === 'Enter' || event.key === ' ') && event.target.closest?.('[data-player-image]')) {
+    event.preventDefault();
+    const image = event.target.closest('[data-player-image]').querySelector('img');
+    if (image) openPlayerImagePreview(image, image.alt);
+  }
 });
 
 document.addEventListener('submit', async event => {
