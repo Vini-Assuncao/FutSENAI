@@ -467,6 +467,8 @@ function setLoading(message = 'Carregando...') {
 }
 function updateChrome() {
   document.body.classList.toggle('anti-resenha-mode', state.antiResenha);
+  const journalCard = document.querySelector('.sidebar-news-card');
+  if (journalCard) journalCard.hidden = state.antiResenha;
   document.getElementById('pageCrumb').textContent = viewNames[state.view] || 'FutSENAI';
   document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === (state.view === 'matchDetail' ? 'matches' : state.view)));
