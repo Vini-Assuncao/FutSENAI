@@ -58,8 +58,6 @@ let journalCurrentIndex = 0;
 let freshJournalNews = null;
 let journalRotationTimer = null;
 let journalTransitionTimer = null;
-let journalPointerInside = false;
-let journalFocusInside = false;
 let brandClickCount = 0;
 let brandClickTimer = null;
 
@@ -159,7 +157,7 @@ function stopJournalRotation() {
 }
 function startJournalRotation() {
   stopJournalRotation();
-  if (journalNews.length < 2 || document.hidden || journalPointerInside || journalFocusInside) return;
+  if (journalNews.length < 2) return;
   journalRotationTimer = window.setInterval(() => showJournalNews(journalCurrentIndex + 1), JOURNAL_ROTATION_MS);
 }
 function showJournalNews(nextIndex) {
@@ -198,7 +196,6 @@ function renderLatestJournalNews(items) {
   startJournalRotation();
 }
 function setupJournalCarouselControls() {
-  const card = document.querySelector('.sidebar-news-card');
   const previous = document.getElementById('sidebarJournalPrev');
   const next = document.getElementById('sidebarJournalNext');
   const dots = document.getElementById('sidebarJournalDots');
@@ -208,19 +205,6 @@ function setupJournalCarouselControls() {
     const dot = event.target.closest('[data-journal-index]');
     if (dot) showJournalNews(Number(dot.dataset.journalIndex));
   });
-  if (card) {
-    card.addEventListener('pointerenter', event => {
-      if (event.pointerType !== 'touch') { journalPointerInside = true; stopJournalRotation(); }
-    });
-    card.addEventListener('pointerleave', event => {
-      if (event.pointerType !== 'touch') { journalPointerInside = false; startJournalRotation(); }
-    });
-    card.addEventListener('focusin', () => { journalFocusInside = true; stopJournalRotation(); });
-    card.addEventListener('focusout', event => {
-      if (!card.contains(event.relatedTarget)) { journalFocusInside = false; startJournalRotation(); }
-    });
-  }
-  document.addEventListener('visibilitychange', () => document.hidden ? stopJournalRotation() : startJournalRotation());
 }
 async function loadLatestJournalNews() {
   try {
