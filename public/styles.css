@@ -427,3 +427,45 @@
 .player-image-lightbox-close{position:absolute;top:18px;right:20px;width:42px;height:42px;border:1px solid #ffffff55;border-radius:50%;background:#ffffff1a;color:#fff;font-size:30px;line-height:1;cursor:pointer}
 .player-image-lightbox-close:hover{background:#ffffff30}
 @media(max-width:560px){.player-image-lightbox{padding:16px}.player-image-lightbox img{width:min(84vw,360px)}.player-image-lightbox-close{top:10px;right:10px}}
+.player-profile-link{display:inline;padding:0;border:0;background:transparent;color:inherit;text-align:left;font-weight:800;cursor:pointer}
+.player-profile-link:hover{color:var(--red);text-decoration:underline;text-underline-offset:3px}
+.player-profile-link:focus-visible{outline:2px solid #f5a4b5;outline-offset:2px;border-radius:3px}
+.player-profile-hero{padding:22px;margin-bottom:17px}
+.player-profile-identity{display:flex;align-items:center;gap:18px}
+.player-profile-avatar{width:92px;height:92px;border-radius:25px;font-size:27px}
+.player-profile-identity .eyebrow{display:block;margin-bottom:7px}
+.player-profile-identity h2{margin:0;font:800 23px/1.2 var(--display);letter-spacing:-.5px}
+.player-profile-identity div>span:last-child{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+.player-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:18px}
+.player-mode-panel .panel-head{align-items:flex-start}
+.player-mode-panel .panel-subtitle{line-height:1.5}
+.player-win-rate{flex:none;padding:6px 9px;border-radius:8px;background:var(--green-soft);color:var(--green);font-size:10px;font-weight:800}
+.player-mode-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;padding:0 15px 16px}
+.player-mode-stats>div{display:grid;gap:4px;padding:12px 9px;border-radius:9px;background:#f8f8fa;text-align:center}
+.player-mode-stats strong{font:800 20px var(--display);color:#30313b}
+.player-mode-stats span{color:#888b95;font-size:9px;font-weight:700}
+.player-history-panel{overflow:hidden}
+.player-history-list{padding:0 20px 12px}
+.player-history-match{display:grid;grid-template-columns:minmax(130px,1fr) auto minmax(140px,1.2fr) auto auto;align-items:center;gap:14px;padding:13px 0;border-top:1px solid #f0f0f3}
+.player-history-match:first-child{border-top:0}
+.player-history-match-date{display:grid;gap:6px;color:#555762;font-size:11px;font-weight:800}
+.player-history-match-date .match-kind{width:max-content}
+.player-history-match-score{display:flex;align-items:center;gap:6px;font:800 17px var(--display)}
+.player-history-match-score span{color:#a2a4ad;font-size:12px}
+.player-history-match-detail{display:grid;gap:5px;color:#777b88;font-size:10px}
+.player-history-result{display:inline-flex;align-items:center;gap:4px;width:max-content;padding:5px 8px;border-radius:7px;font-size:9px;font-weight:800}
+.player-history-result b{font-size:11px}
+.player-history-result.is-win{background:var(--green-soft);color:var(--green)}
+.player-history-result.is-loss{background:#fff0f3;color:var(--red)}
+.player-history-result.is-draw{background:#f1f1f4;color:#777b88}
+.player-history-contributions{display:flex;align-items:center;gap:8px}
+.player-history-contribution{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;align-items:center;column-gap:6px;min-width:76px;padding:7px 9px;border:1px solid transparent;border-radius:10px}
+.player-history-contribution>span{grid-row:1/3;font-size:16px;line-height:1}
+.player-history-contribution strong{font:500 17px/1 var(--display)}
+.player-history-contribution strong.is-positive{font-weight:800}
+.player-history-contribution small{font-size:8px;font-weight:800;line-height:1.2}
+.player-history-contribution.is-goals{background:#fff0f3;border-color:#ffdde4;color:var(--red-dark)}
+.player-history-contribution.is-assists{background:#edf4ff;border-color:#dce7fb;color:var(--blue-dark)}
+.player-history-contribution.is-own-goals{min-width:0;background:var(--amber-soft);border-color:#f4e5c5;color:var(--amber)}
+@media(max-width:760px){.player-profile-hero{padding:17px}.player-profile-avatar{width:76px;height:76px;border-radius:21px}.player-mode-grid{grid-template-columns:1fr;gap:12px}.player-history-list{padding:0 14px 10px}.player-history-match{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}.player-history-match-date{grid-column:1}.player-history-match-score{grid-column:2;grid-row:1}.player-history-match-detail{grid-column:1;grid-row:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.player-history-contributions{grid-column:1/-1;grid-row:3;flex-wrap:wrap}.player-history-match>.btn{grid-column:2;grid-row:2;justify-self:end}}
+@media(max-width:420px){.player-history-match-date .match-kind{font-size:7px}.player-history-contribution{min-width:68px;padding:6px 8px}}

@@ -6,6 +6,7 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 
 - **Painel inicial:** jogadores ativos, partidas registradas, total e média de gols, partidas recentes e artilharia.
 - **Jogadores:** cadastro e edição do nome, qualidade de 1 a 5, foto principal e foto reserva opcional. A foto reserva é usada na apresentação alternativa; se estiver ausente, a foto principal continua sendo exibida. A qualidade é usada para equilibrar os times sorteados; os cadastros existentes recebem qualidade 3.
+- **Desempenho individual:** clique no nome de um jogador no elenco, na artilharia, no ranking ou na súmula para ver partidas, gols, assistências, vitórias, empates e derrotas separados entre jogos do 3º A e interclasse contra o 2º Ano. O histórico individual reúne as dez participações mais recentes dos dois modos, com acesso à súmula de cada partida.
 - **Fotos ampliadas:** clique ou use Enter/Espaço em uma foto de jogador para abri-la em um pop-up quadrado de tamanho uniforme. Feche clicando fora, no botão × ou pressionando Esc.
 - **Modo anti-resenha:** clique cinco vezes seguidas no logo FutSENAI para alternar o modo. A escolha fica salva neste navegador e é indicada discretamente por um ponto ao lado da marca; no modo alternativo, o slogan é ocultado.
 - **Ranking interativo:** na página de estatísticas, clique nos cabeçalhos J, G, V, E, D ou Aprov. para ordenar pelos respectivos números. O padrão é gols, com aproveitamento como critério de desempate.
@@ -83,6 +84,7 @@ FutSENAI/
 | `GET` | `/api/health` | Estado do servidor |
 | `GET` | `/api/dashboard?scope=internal\|interclass` | Indicadores, partidas recentes, artilharia e histórico interclasse filtrados |
 | `GET` | `/api/players?scope=internal\|interclass` | Jogadores com estatísticas no filtro escolhido; `?includeInactive=true` inclui arquivados |
+| `GET` | `/api/players/:id/history` | Desempenho do jogador separado entre partidas internas e interclasse, mais as dez participações recentes |
 | `POST` | `/api/players` | Cria jogador (`multipart/form-data`: `name`, `photo` e `reserve_photo` opcionais) |
 | `PUT` | `/api/players/:id` | Atualiza nome e/ou fotos (`photo`, `reserve_photo`) |
 | `PATCH` | `/api/players/:id/archive` | Arquiva ou reativa jogador |

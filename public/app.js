@@ -26,6 +26,9 @@ const state = {
   matches: [],
   stats: null,
   selectedMatch: null,
+  selectedPlayerId: null,
+  playerProfile: null,
+  playerDetailReturnView: 'players',
   playerSearch: '',
   playerStatus: 'active',
   matchSearch: '',
@@ -41,7 +44,7 @@ const pageContent = document.getElementById('pageContent');
 const modalRoot = document.getElementById('modalRoot');
 const toastStack = document.getElementById('toastStack');
 const readOnlyNotice = document.getElementById('readOnlyNotice');
-const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'Partidas', stats: 'Estatísticas', matchDetail: 'Detalhes da partida' };
+const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'Partidas', stats: 'Estatísticas', matchDetail: 'Detalhes da partida', playerDetail: 'Jogador' };
 const JOURNAL_HOME_URL = 'https://pietro-guedes.github.io/FutSenai-Jornal/';
 const JOURNAL_FEED_URL = 'https://raw.githubusercontent.com/Pietro-Guedes/FutSenai-Jornal/main/noticias.json';
 const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-goal', 'delete-match', 'delete-goal', 'delete-assist']);
@@ -315,6 +318,15 @@ async function api(url, options = {}) {
   let data;
   try { data = await response.json(); } catch { data = {}; }
   if (!response.ok) {
+    const isPlayerHistoryRequest = method === 'GET' && /\/api\/players\/\d+\/history$/.test(new URL(url, document.baseURI).pathname);
+    if (response.status === 404 && isPlayerHistoryRequest && !data.error) {
+      try {
+        await enableReadOnlyMode();
+        return staticApi(url, method);
+      } catch (snapshotError) {
+        throw new Error(`A ficha do jogador não está disponível na API e não foi possível carregar o JSON publicado: ${snapshotError.message}`, { cause: snapshotError });
+      }
+    }
     if (response.status === 404 && method === 'GET' && new URL(url, document.baseURI).pathname.endsWith('/api/health')) {
       await enableReadOnlyMode();
       return staticApi(url, method);
@@ -350,6 +362,38 @@ function staticMatchList(scope, data) {
     .filter(match => match.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates'))
     .sort((left, right) => right.played_on.localeCompare(left.played_on) || right.id - left.id)
     .map(match => staticMatchSummary(match, data));
+}
+function staticPlayerHistory(playerId, data) {
+  const player = data.players.find(item => item.id === playerId);
+  if (!player) return null;
+  const matchesById = new Map(data.matches.map(match => [match.id, match]));
+  const appearances = data.match_players
+    .filter(participant => participant.player_id === playerId)
+    .map(participant => ({ participant, match: matchesById.get(participant.match_id) }))
+    .filter(appearance => appearance.match)
+    .sort((left, right) => right.match.played_on.localeCompare(left.match.played_on) || right.match.id - left.match.id)
+    .slice(0, 10)
+    .map(({ participant, match }) => {
+      const summary = staticMatchSummary(match, data);
+      const playerScore = participant.team_side === 'A' ? summary.score_a : summary.score_b;
+      const opponentScore = participant.team_side === 'A' ? summary.score_b : summary.score_a;
+      return {
+        ...summary,
+        team_side: participant.team_side,
+        result: playerScore > opponentScore ? 'win' : playerScore < opponentScore ? 'loss' : 'draw',
+        goals: data.goals.filter(goal => goal.match_id === match.id && goal.player_id === playerId && goal.goal_type === 'normal').length,
+        own_goals: data.goals.filter(goal => goal.match_id === match.id && goal.player_id === playerId && goal.goal_type === 'own_goal').length,
+        assists: Number(participant.assists) || 0
+      };
+    });
+  return {
+    player,
+    stats: {
+      internal: staticPlayerStats(player, 'internal', data),
+      interclass: staticPlayerStats(player, 'interclass', data)
+    },
+    matches: appearances
+  };
 }
 function staticPlayerStats(player, scope, data) {
   const matchById = new Map(data.matches.map(match => [match.id, match]));
@@ -431,6 +475,12 @@ function staticApi(url, method) {
       secondYearRivalry: staticRivalry(data)
     };
   }
+  const playerHistory = endpoint.pathname.match(/\/api\/players\/(\d+)\/history$/);
+  if (playerHistory) {
+    const result = staticPlayerHistory(Number(playerHistory[1]), data);
+    if (!result) throw new Error('Jogador não encontrado no JSON publicado.');
+    return { data: result };
+  }
   if (endpoint.pathname.endsWith('/api/players')) {
     const includeInactive = endpoint.searchParams.get('includeInactive') === 'true';
     const players = data.players.filter(player => includeInactive || player.is_active)
@@ -505,9 +555,12 @@ function updateChrome() {
   const hasVisibleFreshNews = !state.antiResenha && Boolean(freshJournalNews && isFreshJournalNews(freshJournalNews.createdAt));
   if (freshTicker) freshTicker.hidden = !hasVisibleFreshNews;
   document.querySelector('.topbar')?.classList.toggle('has-fresh-news', hasVisibleFreshNews);
-  document.getElementById('pageCrumb').textContent = viewNames[state.view] || 'FutSENAI';
+  document.getElementById('pageCrumb').textContent = state.view === 'playerDetail' && state.playerProfile
+    ? state.playerProfile.player.name
+    : viewNames[state.view] || 'FutSENAI';
   document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
-  document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === (state.view === 'matchDetail' ? 'matches' : state.view)));
+  const activeView = state.view === 'matchDetail' ? 'matches' : state.view === 'playerDetail' ? 'players' : state.view;
+  document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === activeView));
   const date = new Date();
   document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(date).replace('.', '');
   if (state.dashboard) document.getElementById('navPlayerCount').textContent = state.dashboard.summary.activePlayers;
@@ -532,6 +585,7 @@ async function renderCurrent() {
     if (state.view === 'matches') return await renderMatches();
     if (state.view === 'stats') return await renderStats();
     if (state.view === 'matchDetail') return await renderMatchDetail();
+    if (state.view === 'playerDetail') return await renderPlayerDetail();
   } catch (error) {
     pageContent.innerHTML = `<div class="empty-state"><div class="empty-symbol">!</div><h3>Não foi possível carregar esta página</h3><p>${esc(error.message)}</p><button class="btn btn-primary" data-action="retry">Tentar novamente</button></div>`;
   }
@@ -558,7 +612,7 @@ function renderMatchRow(match) {
 }
 function scorerRow(player, index) {
   const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><strong>${esc(player.nickname || player.name)}</strong><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} gols</div></div>`;
+  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.nickname || player.name)}</button><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} gols</div></div>`;
 }
 async function renderDashboard() {
   setLoading('Atualizando o placar da turma...');
@@ -596,7 +650,7 @@ async function renderDashboard() {
 }
 function playerCard(player) {
   const archived = !player.is_active;
-  return `<article class="player-card"><div class="player-card-head">${avatar(player)}<div class="player-card-name"><h3>${esc(player.name)}${archived ? '<span class="archived-label">ARQUIVADO</span>' : ''}</h3><p>${player.matches_played} ${player.matches_played === 1 ? 'partida disputada' : 'partidas disputadas'}</p><span class="player-quality">Qualidade <strong>${player.quality || 3}/5</strong></span></div></div><div class="player-mini-stats"><div><strong>${player.matches_played}</strong><span>PARTIDAS</span></div><div><strong>${player.goals}</strong><span>GOLS</span></div><div><strong>${player.wins}</strong><span>VITÓRIAS</span></div></div><div class="player-card-actions"><button class="btn btn-secondary btn-small" data-action="edit-player" data-id="${player.id}">✎ Editar</button>${archived ? `<button class="btn btn-secondary btn-small" data-action="reactivate-player" data-id="${player.id}">Reativar</button>` : `<button class="btn btn-danger btn-small" data-action="archive-player" data-id="${player.id}">Arquivar</button>`}</div></article>`;
+  return `<article class="player-card"><div class="player-card-head">${avatar(player)}<div class="player-card-name"><h3><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.name)}</button>${archived ? '<span class="archived-label">ARQUIVADO</span>' : ''}</h3><p>${player.matches_played} ${player.matches_played === 1 ? 'partida disputada' : 'partidas disputadas'}</p><span class="player-quality">Qualidade <strong>${player.quality || 3}/5</strong></span></div></div><div class="player-mini-stats"><div><strong>${player.matches_played}</strong><span>PARTIDAS</span></div><div><strong>${player.goals}</strong><span>GOLS</span></div><div><strong>${player.wins}</strong><span>VITÓRIAS</span></div></div><div class="player-card-actions"><button class="btn btn-secondary btn-small" data-action="edit-player" data-id="${player.id}">✎ Editar</button>${archived ? `<button class="btn btn-secondary btn-small" data-action="reactivate-player" data-id="${player.id}">Reativar</button>` : `<button class="btn btn-danger btn-small" data-action="archive-player" data-id="${player.id}">Arquivar</button>`}</div></article>`;
 }
 async function renderPlayers() {
   setLoading('Carregando elenco...');
@@ -648,6 +702,36 @@ async function renderStats() {
   state.stats = result;
   renderStatsContent();
 }
+function playerModeStats(title, subtitle, playerStats) {
+  const stats = playerStats || { matches_played: 0, goals: 0, assists: 0, wins: 0, draws: 0, losses: 0, win_rate: 0 };
+  const values = [
+    ['Partidas', stats.matches_played],
+    ['Gols', stats.goals],
+    ['Assistências', stats.assists],
+    ['Vitórias', stats.wins],
+    ['Empates', stats.draws],
+    ['Derrotas', stats.losses]
+  ];
+  return `<section class="panel player-mode-panel"><div class="panel-head"><div><h2 class="panel-title">${title}</h2><div class="panel-subtitle">${subtitle}</div></div><span class="player-win-rate">${stats.win_rate}% vitórias</span></div><div class="player-mode-stats">${values.map(([label, value]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join('')}</div></section>`;
+}
+async function renderPlayerDetail() {
+  if (!state.selectedPlayerId) return navigate('players');
+  setLoading('Carregando desempenho do jogador...');
+  const result = await api(`/api/players/${state.selectedPlayerId}/history`);
+  state.playerProfile = result.data;
+  updateChrome();
+  const { player, stats, matches } = result.data;
+  const matchHistory = matches.length ? matches.map(match => {
+    const interclass = match.opponent_type === 'second_year';
+    const resultLabel = match.result === 'win' ? 'Vitória' : match.result === 'loss' ? 'Derrota' : 'Empate';
+    const resultIcon = match.result === 'win' ? '✓' : match.result === 'loss' ? '↘' : '=';
+    const resultClass = match.result === 'win' ? 'is-win' : match.result === 'loss' ? 'is-loss' : 'is-draw';
+    const playerTeam = interclass ? '3º A' : match.team_side === 'A' ? 'Time Vermelho' : 'Time Branco';
+    const gameType = interclass ? '⚔ CONTRA O 2º ANO' : '⚽ ENTRE NÓS · 3º A';
+    return `<article class="player-history-match"><div class="player-history-match-date">${shortDate(match.played_on, true)}<span class="match-kind ${interclass ? 'interclass' : ''}">${gameType}</span></div><div class="player-history-match-score"><strong>${match.score_a}</strong><span>:</span><strong>${match.score_b}</strong></div><div class="player-history-match-detail"><span>${playerTeam}</span><span class="player-history-result ${resultClass}"><b aria-hidden="true">${resultIcon}</b> ${resultLabel}</span></div><div class="player-history-contributions"><span class="player-history-contribution is-goals"><span aria-hidden="true">⚽</span><strong class="${match.goals > 0 ? 'is-positive' : ''}">${match.goals}</strong><small>${match.goals === 1 ? 'gol' : 'gols'}</small></span><span class="player-history-contribution is-assists"><span aria-hidden="true">🎯</span><strong class="${match.assists > 0 ? 'is-positive' : ''}">${match.assists}</strong><small>assist.</small></span>${match.own_goals ? `<span class="player-history-contribution is-own-goals"><span aria-hidden="true">↩</span><strong>${match.own_goals}</strong><small>contra</small></span>` : ''}</div><button type="button" class="btn btn-secondary btn-small" data-action="open-match" data-id="${match.id}">Súmula ↗</button></article>`;
+  }).join('') : '<div class="empty-inline"><strong>Nenhuma partida no histórico</strong>Quando o jogador participar de uma partida, o desempenho aparecerá aqui.</div>';
+  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">DESEMPENHO INDIVIDUAL</div><h1>Histórico do jogador<span style="color:var(--red)">.</span></h1><p>Estatísticas separadas por modo de jogo e partidas recentes em uma única linha do tempo.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="back-player-profile">← Voltar</button></div></section><section class="panel player-profile-hero"><div class="player-profile-identity">${avatar(player, 'player-profile-avatar')}<div><span class="eyebrow">${player.is_active ? 'JOGADOR ATIVO' : 'JOGADOR ARQUIVADO'}</span><h2>${esc(player.name)}</h2><span>Qualidade ${player.quality || 3}/5</span></div></div></section><div class="player-mode-grid">${playerModeStats('Entre nós · 3º A', 'Partidas entre jogadores da turma', stats.internal)}${playerModeStats('Interclasse · 2º Ano', 'Partidas contra o 2º Ano', stats.interclass)}</div><section class="panel player-history-panel"><div class="panel-head"><div><h2 class="panel-title">Últimas partidas</h2><div class="panel-subtitle">Os dois modos de jogo, em ordem da mais recente</div></div><span class="results-label">${matches.length} ${matches.length === 1 ? 'partida' : 'partidas'}</span></div><div class="player-history-list">${matchHistory}</div></section>`;
+}
 function statsSortHeader(label, key) {
   const sorted = state.statsSort === key;
   const direction = sorted ? state.statsSortDirection : 'desc';
@@ -679,7 +763,7 @@ function renderStatsContent() {
   });
   const tableRows = ranking.length ? ranking.map((p, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<span>${esc(p.name)}</span></div></td><td class="num">${p.matches_played}</td><td class="num">${p.goals}</td><td class="num">${p.assists}</td><td class="num">${p.wins}</td><td class="num">${p.losses}</td><td class="num">${p.goals + p.assists}</td></tr>`;
+    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${p.id}">${esc(p.name)}</button></div></td><td class="num">${p.matches_played}</td><td class="num">${p.goals}</td><td class="num">${p.assists}</td><td class="num">${p.wins}</td><td class="num">${p.losses}</td><td class="num">${p.goals + p.assists}</td></tr>`;
   }).join('') : `<tr><td colspan="7"><div class="empty-inline"><strong>Sem estatísticas neste filtro</strong>Registre partidas e gols, ou selecione outro tipo de partida.</div></td></tr>`;
   const top = [...result.players].filter(player => player.goals > 0)
     .sort((left, right) => right.goals - left.goals || right.assists - left.assists || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }))[0];
@@ -711,7 +795,7 @@ async function renderMatchDetail() {
     const aggregateOpponentGoal = interclass && !goal.player_id && goal.team_side === 'B';
     const opponentOwnGoal = interclass && !goal.player_id && goal.team_side === 'A' && goal.goal_type === 'own_goal';
     const goalSideClass = goal.team_side === 'A' ? 'goal-side-red' : interclass ? 'goal-side-blue' : 'goal-side-gray';
-    const author = aggregateOpponentGoal ? 'Gols totais do 2º Ano' : opponentOwnGoal ? 'Gol contra do 2º Ano' : goal.player_name ? esc(goal.player_name) : 'Autor não informado';
+    const author = aggregateOpponentGoal ? 'Gols totais do 2º Ano' : opponentOwnGoal ? 'Gol contra do 2º Ano' : goal.player_name ? `<button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${goal.player_id}">${esc(goal.player_name)}</button>` : 'Autor não informado';
     const description = aggregateOpponentGoal || opponentOwnGoal ? 'Total agregado do adversário · sem identificação individual' : `${goalTypeLabel(goal.goal_type)} · ponto para ${goal.team_side === 'A' ? esc(match.team_a_name) : esc(match.team_b_name)}`;
     return `<div class="goal-event goal-event-counted ${goalSideClass} ${aggregateOpponentGoal ? 'aggregate-opponent-goal' : ''}">
       <div class="goal-total-badge">${goal.count > 1 ? `×${goal.count}` : '⚽︎'}</div>
@@ -732,7 +816,7 @@ async function renderMatchDetail() {
           playerOwnGoals ? `${playerOwnGoals} contra` : ''
         ].filter(Boolean).join(' · ')
         : 'Sem participação em gols';
-      return `<div class="roster-player">${avatar(player)}<div class="roster-player-info"><strong>${esc(player.name)}</strong><small class="roster-player-stats">${statText}</small></div></div>`;
+      return `<div class="roster-player">${avatar(player)}<div class="roster-player-info"><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.name)}</button><small class="roster-player-stats">${statText}</small></div></div>`;
     }).join('') || '<div class="empty-inline">Sem jogadores nesta equipe</div>';
   };
 
@@ -1313,6 +1397,16 @@ document.addEventListener('click', async event => {
     else if (action === 'back-matches' || action === 'go-matches') await navigate('matches');
     else if (action === 'go-players') await navigate('players');
     else if (action === 'go-stats') await navigate('stats');
+    else if (action === 'open-player-profile') {
+      state.playerDetailReturnView = state.view === 'matchDetail' || state.view === 'playerDetail' ? 'matches' : state.view;
+      state.selectedPlayerId = id;
+      state.playerProfile = null;
+      state.view = 'playerDetail';
+      setSidebarOpen(false);
+      updateChrome();
+      await renderPlayerDetail();
+    }
+    else if (action === 'back-player-profile') await navigate(state.playerDetailReturnView || 'players');
     else if (action === 'retry') await renderCurrent();
     else if (action === 'select-all-players') {
       modalRoot.querySelectorAll('.participant-check').forEach((check, index) => { check.checked = true; const select = check.closest('.participant-row').querySelector('.participant-side'); const interclass = document.getElementById('opponentType')?.value === 'second_year'; select.disabled = interclass ? true : false; select.value = interclass ? 'A' : (index % 2 === 0 ? 'A' : 'B'); }); clearTeamDraw(); updateTeamCounts();

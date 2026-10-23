@@ -150,6 +150,39 @@ function getPlayerList(includeInactive = false, scope = 'internal', data = dataS
     .sort((left, right) => right.is_active - left.is_active || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }));
   return players.map(player => getPlayerStats(player.id, scope, data));
 }
+function getPlayerHistory(playerId, data = dataStore.getData()) {
+  const player = data.players.find(item => item.id === playerId);
+  if (!player) return null;
+  const matchesById = new Map(data.matches.map(match => [match.id, match]));
+  const appearances = data.match_players
+    .filter(participant => participant.player_id === playerId)
+    .map(participant => ({ participant, match: matchesById.get(participant.match_id) }))
+    .filter(appearance => appearance.match)
+    .sort((left, right) => right.match.played_on.localeCompare(left.match.played_on) || right.match.id - left.match.id)
+    .slice(0, 10)
+    .map(({ participant, match }) => {
+      const summary = getMatchSummary(match, data);
+      const scores = getScores(match.id, data);
+      const playerScore = participant.team_side === 'A' ? scores.A : scores.B;
+      const opponentScore = participant.team_side === 'A' ? scores.B : scores.A;
+      return {
+        ...summary,
+        team_side: participant.team_side,
+        result: playerScore > opponentScore ? 'win' : playerScore < opponentScore ? 'loss' : 'draw',
+        goals: data.goals.filter(goal => goal.match_id === match.id && goal.player_id === playerId && goal.goal_type === 'normal').length,
+        own_goals: data.goals.filter(goal => goal.match_id === match.id && goal.player_id === playerId && goal.goal_type === 'own_goal').length,
+        assists: Number(participant.assists) || 0
+      };
+    });
+  return {
+    player,
+    stats: {
+      internal: getPlayerStats(playerId, 'internal', data),
+      interclass: getPlayerStats(playerId, 'interclass', data)
+    },
+    matches: appearances
+  };
+}
 function getMatchList(limit = null, scope = 'internal', data = dataStore.getData()) {
   const rows = data.matches
     .filter(match => !scope || match.opponent_type === (scope === 'interclass' ? 'second_year' : 'classmates'))
@@ -200,6 +233,13 @@ app.get('/api/players', (req, res, next) => {
     const data = dataStore.getData();
     const scope = normalizeScope(req.query.scope);
     res.json({ data: getPlayerList(req.query.includeInactive === 'true', scope, data), scope });
+  } catch (error) { next(error); }
+});
+app.get('/api/players/:id/history', (req, res, next) => {
+  try {
+    const history = getPlayerHistory(validId(req.params.id));
+    if (!history) throw httpError(404, 'Jogador não encontrado.');
+    res.json({ data: history });
   } catch (error) { next(error); }
 });
 
