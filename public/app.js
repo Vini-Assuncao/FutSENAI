@@ -190,7 +190,7 @@ function renderLatestJournalNews(items) {
     const headline = String(freshJournalNews?.title || '').trim();
     freshTickerText.textContent = headline;
     freshTickerRepeat.textContent = headline;
-    freshTicker.setAttribute('aria-label', headline ? `Notícia fresca: ${headline}` : 'Notícia fresca');
+    freshTicker.setAttribute('aria-label', headline ? `Notícia fresca!: ${headline}` : 'Notícia fresca!');
     freshTicker.hidden = state.antiResenha || !freshJournalNews;
   }
   journalCurrentIndex = 0;
