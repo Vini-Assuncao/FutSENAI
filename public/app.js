@@ -55,6 +55,7 @@ function initials(name) {
 const JOURNAL_ROTATION_MS = 8500;
 let journalNews = [];
 let journalCurrentIndex = 0;
+let freshJournalNews = null;
 let journalRotationTimer = null;
 let journalTransitionTimer = null;
 let journalPointerInside = false;
@@ -68,6 +69,11 @@ function formatJournalDate(value) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo'
   }).format(date).replace('.', '');
+}
+function isFreshJournalNews(value) {
+  const createdAt = Date.parse(value);
+  const age = Date.now() - createdAt;
+  return Number.isFinite(createdAt) && age >= 0 && age <= 12 * 60 * 60 * 1000;
 }
 function fallbackJournalNewsFromMarkup() {
   const title = document.getElementById('sidebarJournalTitle')?.textContent?.trim();
@@ -106,11 +112,13 @@ function renderCurrentJournalNews() {
   const title = document.getElementById('sidebarJournalTitle');
   const excerpt = document.getElementById('sidebarJournalExcerpt');
   const kicker = document.getElementById('sidebarJournalKicker');
+  const freshBadge = document.getElementById('sidebarJournalFresh');
   const controls = document.getElementById('sidebarJournalControls');
   const dots = document.getElementById('sidebarJournalDots');
   if (!link || !cover || !tag || !date || !title || !excerpt || !dots) return;
 
   const headline = String(item.title || 'Última notícia do Jornal FutSENAI').trim();
+  const fresh = isFreshJournalNews(item.createdAt);
   const coverUrl = journalImageUrl(item);
   cover.onerror = () => {
     cover.onerror = null;
@@ -123,12 +131,13 @@ function renderCurrentJournalNews() {
   link.href = JOURNAL_HOME_URL;
   link.setAttribute('aria-label', `Ler no Jornal FutSENAI: ${headline}`);
   if (kicker) kicker.textContent = 'JORNAL FUTSENAI';
+  if (freshBadge) freshBadge.hidden = !fresh;
   tag.textContent = String(item.category || 'NOTÍCIA').trim().toLocaleUpperCase('pt-BR');
   date.dateTime = String(item.createdAt || '');
   date.textContent = formatJournalDate(item.createdAt);
   const cleanContent = String(item.content || '').replace(/\s+/g, ' ').trim();
-  excerpt.textContent = cleanContent.length > 190 ? `${cleanContent.slice(0, 187).trimEnd()}…` : cleanContent;
-  title.textContent = headline;
+  excerpt.textContent = cleanContent.length > 125 ? `${cleanContent.slice(0, 122).trimEnd()}…` : cleanContent;
+  title.textContent = headline.length > 110 ? `${headline.slice(0, 107).trimEnd()}…` : headline;
 
   dots.replaceChildren();
   journalNews.forEach((newsItem, index) => {
@@ -171,6 +180,19 @@ function renderLatestJournalNews(items) {
     .filter(item => item && typeof item === 'object' && typeof item.title === 'string' && item.title.trim())
     .slice(0, 3);
   journalNews = incoming.length ? incoming : fallbackJournalNewsFromMarkup();
+  freshJournalNews = journalNews
+    .filter(item => isFreshJournalNews(item.createdAt))
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] || null;
+  const freshTicker = document.getElementById('freshNewsTicker');
+  const freshTickerText = document.getElementById('freshNewsTickerText');
+  const freshTickerRepeat = document.getElementById('freshNewsTickerRepeat');
+  if (freshTicker && freshTickerText && freshTickerRepeat) {
+    const headline = String(freshJournalNews?.title || '').trim();
+    freshTickerText.textContent = headline;
+    freshTickerRepeat.textContent = headline;
+    freshTicker.setAttribute('aria-label', headline ? `Notícia fresca: ${headline}` : 'Notícia fresca');
+    freshTicker.hidden = state.antiResenha || !freshJournalNews;
+  }
   journalCurrentIndex = 0;
   renderCurrentJournalNews();
   startJournalRotation();
@@ -469,6 +491,8 @@ function updateChrome() {
   document.body.classList.toggle('anti-resenha-mode', state.antiResenha);
   const journalCard = document.querySelector('.sidebar-news-card');
   if (journalCard) journalCard.hidden = state.antiResenha;
+  const freshTicker = document.getElementById('freshNewsTicker');
+  if (freshTicker) freshTicker.hidden = state.antiResenha || !freshJournalNews || !isFreshJournalNews(freshJournalNews.createdAt);
   document.getElementById('pageCrumb').textContent = viewNames[state.view] || 'FutSENAI';
   document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === (state.view === 'matchDetail' ? 'matches' : state.view)));

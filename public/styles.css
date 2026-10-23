@@ -343,15 +343,17 @@
 /* Jornal FutSENAI na lateral e publicidade na Visão geral. */
 .sidebar-news-card{display:block;margin:0 3px 14px;padding:9px 9px 12px;border:1px solid #f2dbe0;border-radius:14px;background:linear-gradient(160deg,#fff5f5 0%,#ffe7e7 100%);color:var(--ink);transition:border-color .16s,background .16s,transform .16s;}
 .sidebar-news-card:hover{border-color:#e8a7b5;background:#ffe7e7;transform:translateY(-1px)}
-.sidebar-news-cover{display:block;width:100%;height:82px;margin:0 0 11px;border-radius:9px;object-fit:cover;object-position:center;background:#7f1420;} 
+.sidebar-news-cover{display:block;width:100%;height:68px;margin:0 0 8px;border-radius:9px;object-fit:cover;object-position:center;background:#7f1420;}
 .sidebar-news-card:focus-visible{outline:3px solid #f5a4b5;outline-offset:3px}
 .sidebar-news-kicker{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#9b6b76;font-size:8px;font-weight:900;letter-spacing:1px;margin-bottom:10px}
+.sidebar-news-fresh{padding:4px 6px;border-radius:99px;background:var(--red);color:#fff;font-size:7px;letter-spacing:.45px;animation:fresh-news-pulse 1.3s ease-in-out infinite}
+.sidebar-news-fresh[hidden]{display:none}
 .sidebar-news-arrow{font-size:15px;line-height:1;color:var(--red)}
 .sidebar-news-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
 .sidebar-news-tag{display:inline-flex;align-items:center;max-width:100%;padding:4px 7px;border-radius:6px;background:#ffe5eb;color:#b81134;font-size:8px;line-height:1.1;font-weight:900;letter-spacing:.45px;overflow-wrap:anywhere}
 .sidebar-news-meta time{font-size:9px;color:#999ba5;white-space:nowrap}
-.sidebar-news-title{margin:0;font:800 11px/1.38 var(--display);letter-spacing:-.12px;color:#30313b;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.sidebar-news-excerpt{margin:8px 0 10px;color:#797c87;font-size:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.sidebar-news-title{margin:0;font:800 11px/1.38 var(--display);letter-spacing:-.12px;color:#30313b;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.sidebar-news-excerpt{margin:6px 0 8px;color:#797c87;font-size:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .sidebar-news-cta{display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid #f2e7ea;padding-top:9px;color:var(--red);font-size:9px;font-weight:800}
 .sidebar-news-cta span{font-size:13px;line-height:1}
 .dashboard-ad-panel{min-width:0;overflow:hidden;display:flex;flex-direction:column}
@@ -392,3 +394,15 @@
 .photo-upload-input{min-width:0;flex:1}
 .photo-upload-input .form-help{margin-top:7px}
 @media(max-width:760px){.breadcrumb{gap:7px}}
+
+.fresh-news-ticker{display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:460px;padding:6px 9px;border:1px solid #ffd3dc;border-radius:8px;background:#fff2f4;color:var(--ink)}
+.fresh-news-ticker[hidden]{display:none}
+.fresh-news-ticker-label{flex:none;padding:3px 5px;border-radius:5px;background:var(--red);color:#fff;font-size:7px;font-weight:900;letter-spacing:.5px}
+.fresh-news-ticker-viewport{min-width:0;overflow:hidden;white-space:nowrap}
+.fresh-news-ticker-track{display:flex;width:max-content;animation:fresh-news-scroll 22s linear infinite}
+.fresh-news-ticker-track span{padding-right:48px;font-size:10px;font-weight:700}
+.fresh-news-ticker:hover .fresh-news-ticker-track{animation-play-state:paused}
+@keyframes fresh-news-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes fresh-news-pulse{50%{box-shadow:0 0 0 4px #d7193f2e}}
+@media(max-width:760px){.fresh-news-ticker{max-width:min(54vw,340px);gap:5px;padding:5px 6px}.fresh-news-ticker-track span{font-size:9px;padding-right:30px}}
+@media(prefers-reduced-motion:reduce){.fresh-news-ticker-track,.sidebar-news-fresh{animation:none}.fresh-news-ticker-track span:nth-child(2){display:none}}
