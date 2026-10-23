@@ -36,6 +36,9 @@ const state = {
   statsSort: 'goals',
   statsSortDirection: 'desc',
   readOnly: false,
+  serverAvailable: false,
+  isAdmin: false,
+  authConfigured: false,
   antiResenha: loadAntiResenhaPreference(),
   staticData: null
 };
@@ -43,11 +46,14 @@ const state = {
 const pageContent = document.getElementById('pageContent');
 const modalRoot = document.getElementById('modalRoot');
 const toastStack = document.getElementById('toastStack');
-const readOnlyNotice = document.getElementById('readOnlyNotice');
 const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'Partidas', stats: 'Estatísticas', matchDetail: 'Detalhes da partida', playerDetail: 'Jogador' };
 const JOURNAL_HOME_URL = 'https://pietro-guedes.github.io/FutSenai-Jornal/';
 const JOURNAL_FEED_URL = 'https://raw.githubusercontent.com/Pietro-Guedes/FutSenai-Jornal/main/noticias.json';
 const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-goal', 'delete-match', 'delete-goal', 'delete-assist']);
+const authEndpoints = new Set(['/api/auth/login', '/api/auth/logout']);
+function canEdit() {
+  return state.serverAvailable && state.isAdmin && !state.readOnly;
+}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -297,10 +303,14 @@ function outcomeLabel(match) {
 }
 async function api(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
+  const endpoint = new URL(url, document.baseURI).pathname;
+  if (method !== 'GET' && !authEndpoints.has(endpoint) && !canEdit()) {
+    throw new Error('Entre no modo ADM para fazer alterações.');
+  }
   if (state.readOnly) return staticApi(url, method);
   let response;
   try {
-    response = await fetch(url, options);
+    response = await fetch(url, { ...options, credentials: 'same-origin' });
   } catch (error) {
     if (method !== 'GET') {
       try {
@@ -322,6 +332,10 @@ async function api(url, options = {}) {
   let data;
   try { data = await response.json(); } catch { data = {}; }
   if (!response.ok) {
+    if (response.status === 401 && method !== 'GET' && !authEndpoints.has(endpoint)) {
+      state.isAdmin = false;
+      updateChrome();
+    }
     const isPlayerHistoryRequest = method === 'GET' && /\/api\/players\/\d+\/history$/.test(new URL(url, document.baseURI).pathname);
     if (response.status === 404 && isPlayerHistoryRequest && !data.error) {
       try {
@@ -534,8 +548,10 @@ async function enableReadOnlyMode() {
   }
   state.staticData = data;
   state.readOnly = true;
+  state.serverAvailable = false;
+  state.isAdmin = false;
   document.body.classList.add('read-only-mode');
-  readOnlyNotice.hidden = false;
+  updateChrome();
   document.getElementById('storageStatus').textContent = 'Visualizando a cópia publicada dos dados.';
 }
 function jsonOptions(method, payload) {
@@ -552,6 +568,18 @@ function setLoading(message = 'Carregando...') {
   pageContent.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>${esc(message)}</p></div>`;
 }
 function updateChrome() {
+  const editor = canEdit();
+  document.body.classList.toggle('editor-mode', editor);
+  document.body.classList.toggle('view-only-mode', !editor);
+  const editorButton = document.getElementById('adminModeButton');
+  if (editorButton) {
+    editorButton.hidden = !state.serverAvailable;
+    editorButton.textContent = editor ? '⇥ Sair do modo ADM' : '🔒 Entrar no modo ADM';
+    editorButton.title = state.authConfigured ? '' : 'Configure FUTSENAI_ADMIN_PASSWORD no servidor para habilitar o modo ADM.';
+    editorButton.disabled = false;
+  }
+  const editorNotice = document.getElementById('adminModeNotice');
+  if (editorNotice) editorNotice.hidden = !editor;
   document.body.classList.toggle('anti-resenha-mode', state.antiResenha);
   const journalCard = document.querySelector('.sidebar-news-card');
   if (journalCard) journalCard.hidden = state.antiResenha;
@@ -625,11 +653,11 @@ async function renderDashboard() {
   state.players = result.players;
   updateChrome();
   const s = result.summary;
-  const matchActionLabel = state.readOnly ? 'Testar sorteio' : 'Registrar partida';
+  const matchActionLabel = canEdit() ? 'Registrar partida' : 'Testar sorteio';
   const scorerHtml = result.topScorers.length ? result.topScorers.map(scorerRow).join('') : `<div class="empty-inline"><strong>Nenhuma estatística neste filtro</strong>Registre gols ou selecione outro tipo de partida.</div>`;
   const recentHtml = result.recentMatches.length ? result.recentMatches.map(renderMatchRow).join('') : `<div class="empty-inline"><strong>Nenhuma partida neste filtro</strong>Registre um jogo para ver o placar por aqui.</div>`;
   pageContent.innerHTML = `
-    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO À QUADRA</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions">${state.readOnly ? '' : '<button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button>'}<button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button></div></section>
+    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO À QUADRA</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions">${canEdit() ? '<button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button>' : ''}<button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button></div></section>
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
     <section class="stats-grid">
       ${statCard('Jogadores ativos', s.activePlayers, '♟', 'Elenco disponível do 3º A')}
@@ -645,7 +673,7 @@ async function renderDashboard() {
     <section class="dashboard-bottom ${state.antiResenha ? 'anti-resenha-dashboard' : ''}">
       ${state.antiResenha ? '' : '<article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></div></article>'}
       <article class="panel quick-panel"><div class="panel-head"><div><h2 class="panel-title">Atalhos rápidos</h2><div class="panel-subtitle">Mais praticidade para organizar o jogo</div></div></div><div class="quick-actions">
-        <button class="quick-action" data-action="new-match"><span class="quick-action-icon">⚑︎</span><span><strong>${state.readOnly ? 'Testar sorteio' : 'Nova partida'}</strong><span>${state.readOnly ? 'Prévia sem criar partida' : 'Monte os times e registre'}</span></span></button>
+        <button class="quick-action" data-action="new-match"><span class="quick-action-icon">⚑︎</span><span><strong>${canEdit() ? 'Nova partida' : 'Testar sorteio'}</strong><span>${canEdit() ? 'Monte os times e registre' : 'Prévia sem criar partida'}</span></span></button>
         <button class="quick-action" data-action="new-player"><span class="quick-action-icon">♟︎</span><span><strong>Novo jogador</strong><span>Adicione um amigo</span></span></button>
         <button class="quick-action" data-action="go-players"><span class="quick-action-icon">☷︎</span><span><strong>Elenco completo</strong><span>Fotos e dados da turma</span></span></button>
         <button class="quick-action" data-action="go-stats"><span class="quick-action-icon">↗︎</span><span><strong>Ver estatísticas</strong><span>Compare os números</span></span></button>
@@ -689,8 +717,8 @@ async function renderMatches() {
   const result = await api(`/api/matches?scope=${state.statsScope}`);
   state.matches = result.data;
   const filtered = state.matches.filter(m => `${m.played_on}`.toLowerCase().includes(state.matchSearch.toLowerCase()));
-  const matchActionLabel = state.readOnly ? 'Testar sorteio' : 'Registrar partida';
-  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">HISTÓRICO</div><h1>Partidas<span style="color:var(--red)">.</span></h1><p>Cada jogo tem sua escalação, seu placar e sua própria história.</p></div><div class="heading-actions"><button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button></div></section><div class="toolbar"><label class="searchbox"><span>⌕</span><input id="matchSearch" type="search" placeholder="Buscar por data (AAAA-MM-DD)..." value="${esc(state.matchSearch)}" autocomplete="off"></label>${scopeFilterHtml()}<span class="results-label" id="matchResultsLabel">${filtered.length} partidas encontradas</span></div><div class="match-cards" id="matchCards">${filtered.length ? filtered.map(matchCard).join('') : `<div class="empty-state"><div class="empty-symbol">⚑</div><h3>${state.matchSearch ? 'Nenhuma partida encontrada' : 'O apito inicial está esperando'}</h3><p>${state.matchSearch ? 'Tente outra data ou limpe a busca.' : state.readOnly ? 'Teste o sorteio de times com os jogadores ativos sem criar uma partida.' : 'Registre uma partida, distribua os jogadores entre os times e anote cada gol.'}</p>${state.matchSearch ? '' : `<button class="btn btn-primary" data-action="new-match">＋ ${state.readOnly ? 'Testar sorteio' : 'Registrar primeira partida'}</button>`}</div>`}</div>`;
+  const matchActionLabel = canEdit() ? 'Registrar partida' : 'Testar sorteio';
+  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">HISTÓRICO</div><h1>Partidas<span style="color:var(--red)">.</span></h1><p>Cada jogo tem sua escalação, seu placar e sua própria história.</p></div><div class="heading-actions"><button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button></div></section><div class="toolbar"><label class="searchbox"><span>⌕</span><input id="matchSearch" type="search" placeholder="Buscar por data (AAAA-MM-DD)..." value="${esc(state.matchSearch)}" autocomplete="off"></label>${scopeFilterHtml()}<span class="results-label" id="matchResultsLabel">${filtered.length} partidas encontradas</span></div><div class="match-cards" id="matchCards">${filtered.length ? filtered.map(matchCard).join('') : `<div class="empty-state"><div class="empty-symbol">⚑</div><h3>${state.matchSearch ? 'Nenhuma partida encontrada' : 'O apito inicial está esperando'}</h3><p>${state.matchSearch ? 'Tente outra data ou limpe a busca.' : canEdit() ? 'Registre uma partida, distribua os jogadores entre os times e anote cada gol.' : 'Teste o sorteio de times com os jogadores ativos sem criar uma partida.'}</p>${state.matchSearch ? '' : `<button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button>`}</div>`}</div>`;
 }
 function renderMatchCardsOnly() {
   const container = document.getElementById('matchCards');
@@ -840,6 +868,40 @@ function modal(title, subtitle, body, footer, wide = false) {
   document.body.style.overflow = 'hidden';
   const first = modalRoot.querySelector('input:not([type="hidden"]),select,button:not([data-modal-close])');
   if (first) window.setTimeout(() => first.focus(), 40);
+}
+function openAdminLoginModal() {
+  const body = `<form id="adminLoginForm" class="modal-body"><div class="form-field full"><label for="adminPassword">Senha do administrador</label><input id="adminPassword" name="password" type="password" autocomplete="current-password" required><div class="form-help">A sessão permanece ativa neste navegador até você sair ou ela expirar.</div></div></form>`;
+  modal('Entrar no modo ADM', 'Digite a senha para habilitar as alterações.', body, '<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="adminLoginForm" class="btn btn-primary">Entrar →</button>');
+}
+async function submitAdminLogin(form) {
+  const submitButton = modalRoot.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    await api('/api/auth/login', jsonOptions('POST', { password: new FormData(form).get('password') }));
+    state.isAdmin = true;
+    state.authConfigured = true;
+    closeModal();
+    updateChrome();
+    toast('Modo ADM ativado.');
+    await renderCurrent();
+  } catch (error) {
+    toast(error.message, 'error');
+    const password = document.getElementById('adminPassword');
+    if (password) { password.value = ''; password.focus(); }
+    submitButton.disabled = false;
+  }
+}
+async function toggleAdminMode() {
+  if (!state.serverAvailable) return;
+  if (!canEdit()) {
+    openAdminLoginModal();
+    return;
+  }
+  const result = await api('/api/auth/logout', { method: 'POST' });
+  state.isAdmin = result.authenticated;
+  updateChrome();
+  toast('Modo de visualização ativado.');
+  await renderCurrent();
 }
 function closeModal() {
   modalRoot.innerHTML = '';
@@ -1372,8 +1434,8 @@ document.addEventListener('click', async event => {
   const button = event.target.closest('[data-action]');
   if (!button) return;
   const action = button.dataset.action;
-  if (state.readOnly && readOnlyActions.has(action)) {
-    toast('Esta cópia está em modo somente leitura. Inicie o servidor para alterar os dados.', 'error');
+  if (!canEdit() && readOnlyActions.has(action)) {
+    toast(state.readOnly ? 'Esta cópia está em modo somente leitura.' : 'Entre no modo ADM para fazer alterações.', 'error');
     return;
   }
   const id = Number(button.dataset.id);
@@ -1391,7 +1453,7 @@ document.addEventListener('click', async event => {
     else if (action === 'new-match') {
       const result = await api('/api/players');
       state.players = result.data;
-      openMatchModal(state.readOnly);
+      openMatchModal(!canEdit());
     }
     else if (action === 'new-goal') openGoalModal();
     else if (action === 'open-match') { state.selectedMatch = id; state.view = 'matchDetail'; updateChrome(); await renderMatchDetail(); }
@@ -1437,11 +1499,15 @@ document.addEventListener('keydown', event => {
 
 document.addEventListener('submit', async event => {
   event.preventDefault();
-  if (state.readOnly) {
-    toast('Esta cópia está em modo somente leitura. Inicie o servidor para alterar os dados.', 'error');
+  const form = event.target;
+  if (form.id === 'adminLoginForm') {
+    await submitAdminLogin(form);
     return;
   }
-  const form = event.target;
+  if (!canEdit()) {
+    toast(state.readOnly ? 'Esta cópia está em modo somente leitura.' : 'Entre no modo ADM para fazer alterações.', 'error');
+    return;
+  }
   if (form.id === 'playerForm') await submitPlayerForm(form);
   if (form.id === 'matchForm') await submitMatchForm(form);
   if (form.id === 'goalForm') await submitGoalForm(form);
@@ -1454,12 +1520,12 @@ document.addEventListener('change', async event => {
   if (event.target.id === 'playerStatus') { state.playerStatus = event.target.value; await renderPlayers(); }
   if (event.target.id === 'statsScope') { state.statsScope = event.target.value; await renderCurrent(); }
 });
-document.getElementById('quickAddPlayer').addEventListener('click', () => {
-  if (state.readOnly) {
-    toast('Esta cópia está em modo somente leitura. Inicie o servidor para alterar os dados.', 'error');
-    return;
+document.getElementById('adminModeButton').addEventListener('click', async () => {
+  try {
+    await toggleAdminMode();
+  } catch (error) {
+    toast(error.message, 'error');
   }
-  openPlayerModal();
 });
 document.getElementById('mobileMenu').addEventListener('click', () => {
   setSidebarOpen(!document.getElementById('sidebar').classList.contains('open'));
@@ -1473,7 +1539,23 @@ void loadLatestJournalNews();
   updateChrome();
   try {
     await api('/api/health');
+    state.serverAvailable = !state.readOnly;
+    let authStatusError = false;
+    if (state.serverAvailable) {
+      try {
+        const auth = await api('/api/auth/status');
+        state.authConfigured = Boolean(auth.configured);
+        state.isAdmin = Boolean(auth.authenticated);
+      } catch (error) {
+        console.error('Não foi possível verificar a sessão ADM.', error);
+        authStatusError = true;
+        state.authConfigured = false;
+        state.isAdmin = false;
+      }
+    }
+    updateChrome();
     await renderDashboard();
+    if (authStatusError) toast('Não foi possível verificar a sessão ADM. O site permanecerá em modo de visualização.', 'warning');
   } catch (error) {
     pageContent.innerHTML = `<div class="empty-state"><div class="empty-symbol">!</div><h3>Não foi possível carregar o FutSENAI</h3><p>Verifique se o servidor está iniciado ou se o arquivo de dados foi publicado em <strong>public/data/futsenai.json</strong>.</p><p style="font-size:10px">Detalhe: ${esc(error.message)}</p><button class="btn btn-primary" data-action="retry">Tentar novamente</button></div>`;
   }

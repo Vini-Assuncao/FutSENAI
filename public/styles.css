@@ -250,7 +250,6 @@
 @media(max-width:560px){.draw-team-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.draw-player-card{max-width:124px}.draw-card-front{gap:8px;padding:13px 7px 10px}.draw-card-player-row .player-avatar{width:50px;height:50px;border-radius:15px}.draw-card-player-copy strong{font-size:10px}}
 .read-only-notice{margin:18px 43px 0;padding:12px 16px;border:1px solid #f0d9a8;border-radius:11px;background:#fff8e8;color:#76551d;font-size:12px;line-height:1.5}
 .read-only-notice[hidden]{display:none}
-.read-only-mode #quickAddPlayer,
 .read-only-mode [data-action="new-player"],
 .read-only-mode [data-action="edit-player"],
 .read-only-mode [data-action="archive-player"],
@@ -259,6 +258,22 @@
 .read-only-mode [data-action="delete-match"],
 .read-only-mode [data-action="delete-goal"]{display:none!important}
 .read-only-mode .player-card-actions{display:none}
+.view-only-mode [data-action="new-player"],
+.view-only-mode [data-action="edit-player"],
+.view-only-mode [data-action="archive-player"],
+.view-only-mode [data-action="reactivate-player"],
+.view-only-mode [data-action="new-goal"],
+.view-only-mode [data-action="delete-match"],
+.view-only-mode [data-action="delete-goal"],
+.view-only-mode [data-action="delete-assist"],
+.view-only-mode .player-card-actions{display:none!important}
+.sidebar-admin-controls{display:grid;gap:7px;margin:-19px 10px 24px}
+.admin-mode-button{width:100%;min-height:31px;justify-content:flex-start;border-color:#f0d9a8;background:#fff8e8;color:#76551d;padding:6px 9px;font-size:10px}
+.admin-mode-button:hover:not(:disabled){border-color:#e6c77d;background:#fff2d5}
+.admin-mode-button[hidden],.admin-mode-notice[hidden]{display:none!important}
+.admin-mode-notice{padding:6px 9px;border:1px solid #f0d9a8;border-radius:9px;background:#fff8e8;color:#76551d;font-size:9px;font-weight:900;letter-spacing:.55px;white-space:nowrap}
+.editor-mode .admin-mode-button{border-color:#e9c45f;background:#fff0b8;color:#755510}
+.editor-mode .admin-mode-button:hover:not(:disabled){border-color:#d8ae39;background:#ffe99a}
 .draw-test-notice{display:grid;gap:4px;margin-bottom:16px;padding:13px 15px;border:1px solid #dce5f5;border-radius:11px;background:#f5f8ff;color:#4d5e7b;font-size:11px;line-height:1.5}
 .draw-test-notice strong{color:#34496f;font-size:12px}
 .team-draw-test-mode .section-caption{margin-top:8px}
