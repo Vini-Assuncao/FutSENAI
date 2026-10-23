@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261023-design-v2">
+  <link rel="stylesheet" href="styles.css?v=20261023-accessibility-mobile-v1">
 </head>
 <body>
   <a class="skip-link" href="#pageContent">Pular para o conteúdo</a>
@@ -30,6 +30,7 @@
         <button class="nav-item" data-view="matches"><span class="nav-icon">⚑</span><span>Partidas</span></button>
         <button class="nav-item" data-view="stats"><span class="nav-icon">↗</span><span>Estatísticas</span></button>
       </nav>
+      <div class="read-only-notice" id="readOnlyNotice" role="status" hidden><strong>Modo de visualização</strong><span>Somente leitura</span></div>
       <div class="sidebar-bottom">
         <section class="sidebar-news-card" aria-label="Carrossel das últimas notícias do Jornal FutSENAI">
           <a class="sidebar-news-story" id="latestJournalNews" href="https://pietro-guedes.github.io/FutSenai-Jornal/" target="_blank" rel="noopener noreferrer" aria-label="Ler a notícia do Jornal FutSENAI">
@@ -60,7 +61,6 @@
         <div class="topbar-actions"><div class="today-chip"><span>◷</span><span id="todayLabel">Hoje</span></div><button class="avatar-button" id="quickAddPlayer" title="Cadastrar jogador">＋</button></div>
       </header>
 
-      <div class="read-only-notice" id="readOnlyNotice" role="status" hidden><strong>Modo somente leitura:</strong> apenas para visualização dos dados.</div>
       <div class="page-content" id="pageContent" tabindex="-1">
         <div class="loading-state"><div class="spinner"></div><p>Preparando a quadra...</p></div>
       </div>
@@ -70,6 +70,6 @@
   <div class="modal-root" id="modalRoot" aria-live="polite"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="noscript-msg">O FutSENAI precisa do JavaScript ativado para funcionar.</p></noscript>
-  <script src="app.js?v=20261023-history-contributions-weights" defer></script>
+  <script src="app.js?v=20261023-accessibility-mobile-v1" defer></script>
 </body>
 </html>

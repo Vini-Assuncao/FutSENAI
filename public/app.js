@@ -272,6 +272,10 @@ function shortDate(dateValue, withYear = false) {
   const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', ...(withYear ? { year: 'numeric' } : {}) }).format(date).replace('.', '');
 }
+function numericDate(dateValue) {
+  const parts = String(dateValue || '').slice(0, 10).split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : esc(dateValue || 'Data não informada');
+}
 function fullDate(dateValue) {
   if (!dateValue) return 'Data não informada';
   const parts = String(dateValue).slice(0, 10).split('-');
@@ -608,7 +612,7 @@ function teamIconClass(match, side) {
 function renderMatchRow(match) {
   const opponent = match.opponent_type === 'second_year';
   const playersText = opponent ? `${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'} do 3º A` : `${match.total_players} ${match.total_players === 1 ? 'jogador' : 'jogadores'}`;
-  return `<div class="match-row"><div><div class="match-meta"><span class="match-date">${shortDate(match.played_on, true)}</span><span>•</span><span>${playersText}</span><span>•</span><span>Quadra</span><span class="match-kind ${opponent ? 'interclass' : ''}">${opponent ? 'INTERCLASSE' : 'ENTRE NÓS'}</span></div><div class="match-teams"><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'A')}">●</span><span>${esc(match.team_a_name)}</span></div><span class="versus">×</span><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'B')}">●</span><span>${esc(match.team_b_name)}</span></div></div></div><div class="match-score">${match.score_a}<span class="dash">:</span>${match.score_b}</div></div>`;
+  return `<div class="match-row"><div><div class="match-meta"><span class="match-date"><span class="match-date-full">${shortDate(match.played_on, true)}</span><span class="match-date-mobile">${numericDate(match.played_on)}</span></span><span>•</span><span>${playersText}</span><span>•</span><span>Quadra</span><span class="match-kind ${opponent ? 'interclass' : ''}">${opponent ? 'INTERCLASSE' : 'ENTRE NÓS'}</span></div><div class="match-teams"><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'A')}">●</span><span>${esc(match.team_a_name)}</span></div><span class="versus">×</span><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'B')}">●</span><span>${esc(match.team_b_name)}</span></div></div></div><div class="match-score">${match.score_a}<span class="dash">:</span>${match.score_b}</div></div>`;
 }
 function scorerRow(player, index) {
   const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';

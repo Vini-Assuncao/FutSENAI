@@ -467,6 +467,13 @@
 .player-history-contribution.is-assists{background:#edf4ff;border-color:#dce7fb;color:var(--blue-dark)}
 .player-history-contribution.is-own-goals{min-width:0;background:var(--amber-soft);border-color:#f4e5c5;color:var(--amber)}
 @media(max-width:760px){.player-profile-hero{padding:17px}.player-profile-avatar{width:76px;height:76px;border-radius:21px}.player-mode-grid{grid-template-columns:1fr;gap:12px}.player-history-list{padding:0 14px 10px}.player-history-match{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}.player-history-match-date{grid-column:1}.player-history-match-score{grid-column:2;grid-row:1}.player-history-match-detail{grid-column:1;grid-row:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.player-history-contributions{grid-column:1/-1;grid-row:3;flex-wrap:wrap}.player-history-match>.btn{grid-column:2;grid-row:2;justify-self:end}}
+.match-date-mobile{display:none}
+@media(max-width:760px){.match-date-full{display:none}.match-date-mobile{display:inline}}
+.sidebar .read-only-notice{display:grid;gap:3px;margin:16px 3px 0;padding:9px 10px;border:1px solid #f0d9a8;border-radius:10px;background:#fff8e8;color:#76551d;font-size:10px;line-height:1.35;box-shadow:none}
+.sidebar .read-only-notice strong{font-size:10px;font-weight:800}
+.sidebar .read-only-notice span{color:#8a6a2f;font-size:9px}
+.sidebar .read-only-notice[hidden]{display:none}
+.sidebar .read-only-notice:before{content:none}
 @media(max-width:420px){.player-history-match-date .match-kind{font-size:7px}.player-history-contribution{min-width:68px;padding:6px 8px}}
 
 /* =====================================================================
@@ -633,9 +640,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .stat-card:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--stat-accent,var(--red));opacity:.9}
 .stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:#e1e2ea}
 .stat-card:nth-child(1){--stat-accent:var(--red);--stat-bg:var(--red-soft)}
-.stat-card:nth-child(2){--stat-accent:var(--blue);--stat-bg:var(--blue-soft);--stat-fg:var(--blue)}
-.stat-card:nth-child(3){--stat-accent:#1f9d6b;--stat-bg:var(--green-soft);--stat-fg:var(--green)}
-.stat-card:nth-child(4){--stat-accent:#e0a02a;--stat-bg:var(--amber-soft);--stat-fg:var(--amber)}
+.stat-card:nth-child(2){--stat-accent:#9f1239;--stat-bg:#fff0f3;--stat-fg:#9f1239}
+.stat-card:nth-child(3){--stat-accent:#e11d48;--stat-bg:#fff0f3;--stat-fg:#be123c}
+.stat-card:nth-child(4){--stat-accent:#d97706;--stat-bg:#fff5e6;--stat-fg:#b45309}
 .stat-top{font-size:13px;color:var(--muted);font-weight:700}
 .stat-icon{flex:none;height:40px;width:40px;border-radius:12px;background:var(--stat-bg,var(--red-soft));color:var(--stat-fg,var(--red))}
 .stat-value{font-size:34px;letter-spacing:-1.6px;margin-top:14px}
@@ -992,13 +999,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .player-card .player-avatar{width:60px;height:60px}
   .rivalry-panel{padding:18px}
   .player-profile-avatar{width:80px;height:80px}
-}
-
-/* ---------- 18. Movimento reduzido (apenas efeitos decorativos) ---------- */
-@media(prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  .fresh-news-ticker-track,.draw-team::before,.draw-confetti-piece,.sidebar-news-fresh,.fresh-news-ticker-label{animation:none!important}
-  .stat-card,.player-card,.match-card,.nav-item,.btn,.quick-action{transition:none!important}
 }
 
 /* ---------- 19. Impressão ---------- */
