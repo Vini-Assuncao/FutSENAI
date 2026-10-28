@@ -12,7 +12,8 @@
       "name": "Gabriel",
       "photo_path": "/uploads/422e12db-2cbc-4116-a4cf-596c8126b0ac.png",
       "is_active": 1,
-      "quality": 2
+      "quality": 2,
+      "photo_reserve_path": "/uploads/f7331fd5-58d7-4171-be1b-e56e148a12d2.png"
     },
     {
       "id": 2,
@@ -35,21 +36,24 @@
       "name": "Assunção",
       "photo_path": "/uploads/6adc75a3-dd0b-4b62-b638-efed486d64e2.png",
       "is_active": 1,
-      "quality": 3
+      "quality": 3,
+      "photo_reserve_path": "/uploads/c228bf75-4f0a-4db5-8d74-80014a29e6c2.jpg"
     },
     {
       "id": 5,
       "name": "Jonas",
       "photo_path": "/uploads/e6a403cc-8674-4af3-9b00-e05e786fb13a.png",
       "is_active": 1,
-      "quality": 3
+      "quality": 3,
+      "photo_reserve_path": "/uploads/fd1e9449-1f53-4fc7-9cf6-47b9375a36c5.jpg"
     },
     {
       "id": 6,
       "name": "Pietro",
       "photo_path": "/uploads/0eb7980b-1172-4807-b5cd-1c81a5cea20d.jpg",
       "is_active": 1,
-      "quality": 5
+      "quality": 5,
+      "photo_reserve_path": "/uploads/0bc5ad40-b181-405c-b239-df1bc4a1109d.jpg"
     },
     {
       "id": 7,
@@ -64,28 +68,32 @@
       "name": "João",
       "photo_path": "/uploads/8c6bba5d-23f2-426c-a3f1-2d52ddb270b9.jpg",
       "is_active": 1,
-      "quality": 4
+      "quality": 4,
+      "photo_reserve_path": "/uploads/c1b9761e-37a5-4353-8947-e037848377f8.png"
     },
     {
       "id": 9,
       "name": "Muzy",
       "photo_path": "/uploads/8ee07653-108d-41a3-9888-758955ba51d7.png",
       "is_active": 1,
-      "quality": 3
+      "quality": 3,
+      "photo_reserve_path": "/uploads/487aca09-3e24-48a0-992a-4bc7a61deff3.png"
     },
     {
       "id": 10,
       "name": "Mateus",
       "photo_path": "/uploads/9ba461a4-0433-4e00-a094-a9798f3fcd37.png",
       "is_active": 1,
-      "quality": 2
+      "quality": 2,
+      "photo_reserve_path": "/uploads/3066ad2b-e7dd-4efe-8ad8-abea3e4cffad.jpg"
     },
     {
       "id": 11,
       "name": "Enzo",
       "photo_path": "/uploads/64989a2b-92f9-4761-b798-2fd652a08dba.png",
       "is_active": 1,
-      "quality": 4
+      "quality": 4,
+      "photo_reserve_path": "/uploads/1b2d7530-d4de-4c6e-925c-aafa9305c444.png"
     }
   ],
   "matches": [
