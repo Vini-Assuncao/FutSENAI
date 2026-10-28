@@ -6,12 +6,11 @@
  * como no FutSENAI Cards.
  *
  * Como funciona (100% estático, sem banco de dados):
- *  1. Lê o catálogo público do FutSENAI Cards direto do GitHub
- *     (src/data/players.ts e src/types.ts) e guarda em cache no navegador.
- *  2. Se o GitHub estiver fora do ar, a fórmula mudar ou o arquivo vier
- *     diferente do esperado, usa o SNAPSHOT embutido abaixo.
- *  3. Reproduz a mesma geração de card do Cards (multiplicador de raridade,
- *     bônus de edição especial, fórmula de overall e limites por raridade).
+ *  1. Lê os atributos dos jogadores em src/data/players.ts no GitHub e
+ *     guarda a atualização em cache no navegador.
+ *  2. Mantém no SNAPSHOT local a fórmula, as raridades e os demais dados do modelo.
+ *  3. Se o GitHub estiver fora do ar ou os atributos vierem em formato inesperado,
+ *     usa os atributos do SNAPSHOT embutido.
  *  4. Casa o nome do jogador do FutSENAI com o do Cards ("Pietro" →
  *     "Pietro Guedes", "Matheus" → "Mateus", apelidos, acentos...).
  *
@@ -26,7 +25,7 @@
   const CARDS_SITE = 'https://fut-senai-cards.vercel.app/';
   const RAW_BASE = 'https://raw.githubusercontent.com/Valle-Vinicius/FutSENAICards/main/';
   const IMAGE_BASE = RAW_BASE + 'src/imagens/';
-  const CACHE_KEY = 'futsenai-cards-catalog-v2';
+  const CACHE_KEY = 'futsenai-cards-catalog-v3';
   const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
   const FETCH_TIMEOUT_MS = 8000;
   const SECTION_ID = 'futsenaicards-player-cards';
@@ -351,14 +350,6 @@
     const m = obj.match(new RegExp(`\\b${key}\\s*:\\s*(?:'((?:[^'\\\\]|\\\\.)*)'|"((?:[^"\\\\]|\\\\.)*)")`));
     return m ? (m[1] ?? m[2]) : null;
   };
-  const numberField = (obj, key) => {
-    const m = obj.match(new RegExp(`\\b${key}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`));
-    return m ? Number(m[1]) : null;
-  };
-  const identField = (obj, key) => {
-    const m = obj.match(new RegExp(`\\b${key}\\s*:\\s*([A-Za-z_$][\\w$]*)`));
-    return m ? m[1] : null;
-  };
   const numbersIn = body => {
     const out = {};
     for (const m of body.matchAll(/([A-Za-z_$][\w$]*)\s*:\s*(-?\d+(?:\.\d+)?)/g)) out[m[1]] = Number(m[2]);
@@ -371,25 +362,7 @@
     return block ? numbersIn(block) : null;
   };
 
-  // Resumo do texto das funções de cálculo, para detectar mudança de fórmula.
-  function formulaFingerprint(playersTs) {
-    const parts = ['calculateOverall', 'applyModifier', 'generatePlayerCard'].map(fn => {
-      const m = playersTs.match(new RegExp(`function\\s+${fn}\\s*\\(`));
-      if (!m) return '';
-      const paren = playersTs.indexOf('(', m.index);
-      const afterParams = extractBlock(playersTs, paren);
-      if (!afterParams) return '';
-      const braceIdx = playersTs.indexOf('{', paren + afterParams.length);
-      const body = extractBlock(playersTs, braceIdx) || '';
-      return body.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '');
-    });
-    return hashString(parts.join('|'));
-  }
-
-  function parseCatalog(playersTs, typesTs) {
-    const imports = {};
-    for (const m of playersTs.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]\.\.\/imagens\/([^'"]+)['"]/g)) imports[m[1]] = m[2];
-
+  function parsePlayerAttributes(playersTs) {
     const decl = playersTs.match(/const\s+TEMPLATES\b[^=]*=\s*\[/);
     if (!decl) throw new Error('TEMPLATES não encontrado');
     const arrayText = extractBlock(playersTs, decl.index + decl[0].length - 1);
@@ -397,33 +370,38 @@
 
     const templates = splitTopLevelObjects(arrayText).map(obj => ({
       name: stringField(obj, 'name'),
-      position: stringField(obj, 'position'),
-      nationality: stringField(obj, 'nationality'),
-      age: numberField(obj, 'age'),
-      club: stringField(obj, 'club'),
-      image: imports[identField(obj, 'image')] || null,
       attributes: objectField(obj, 'attributes'),
       gkAttributes: objectField(obj, 'gkAttributes') || undefined,
     }));
+    const inRange = value => Number.isFinite(value) && value >= 0 && value <= 99;
+    if (!templates.length || templates.some(template =>
+      !template.name?.trim()
+      || !template.attributes
+      || !ATTR_KEYS.every(key => inRange(template.attributes[key]))
+      || (template.gkAttributes && !['reflexes', 'positioning', 'handling'].every(key => inRange(template.gkAttributes[key])))
+    )) throw new Error('atributos dos jogadores em formato inesperado');
 
-    const modDecl = playersTs.match(/RARITY_MODIFIER\b[^=]*=\s*\{/);
-    if (!modDecl) throw new Error('RARITY_MODIFIER não encontrado');
-    const modifiers = numbersIn(extractBlock(playersTs, modDecl.index + modDecl[0].length - 1) || '');
+    return templates;
+  }
 
-    const bonusDecl = playersTs.match(/SPECIAL_BONUS\b[^=]*=\s*\{/);
-    if (!bonusDecl) throw new Error('SPECIAL_BONUS não encontrado');
-    const specialBonuses = numbersIn(extractBlock(playersTs, bonusDecl.index + bonusDecl[0].length - 1) || '');
-
-    const metaDecl = typesTs.match(/RARITY_META\b[^=]*=\s*\{/);
-    if (!metaDecl) throw new Error('RARITY_META não encontrado');
-    const metaText = extractBlock(typesTs, metaDecl.index + metaDecl[0].length - 1) || '';
-    const rarities = {};
-    for (const m of metaText.matchAll(/([a-z]+)\s*:\s*\{\s*label\s*:\s*'([^']*)'\s*,\s*color\s*:\s*'([^']*)'\s*,\s*glow\s*:\s*'[^']*'\s*,\s*minOvr\s*:\s*(\d+)\s*,\s*maxOvr\s*:\s*(\d+)/g)) {
-      rarities[m[1]] = { label: m[2], color: m[3], minOvr: Number(m[4]), maxOvr: Number(m[5]) };
-    }
-
-    const season = (playersTs.match(/SEASONS\s*=\s*\[\s*'([^']+)'/) || [])[1] || '';
-    return { templates, modifiers, specialBonuses, rarities, season, fingerprint: formulaFingerprint(playersTs) };
+  function applyPlayerAttributes(baseCatalog, livePlayers) {
+    const playersByName = new Map(livePlayers.map(player => [normalizeName(player.name), player]));
+    let updatedCount = 0;
+    const templates = baseCatalog.templates.map(template => {
+      const livePlayer = playersByName.get(normalizeName(template.name));
+      if (!livePlayer) return template;
+      if (template.position === 'GK' && !livePlayer.gkAttributes) {
+        throw new Error(`atributos de goleiro ausentes para ${template.name}`);
+      }
+      updatedCount++;
+      return {
+        ...template,
+        attributes: livePlayer.attributes,
+        ...(template.position === 'GK' && livePlayer.gkAttributes ? { gkAttributes: livePlayer.gkAttributes } : {}),
+      };
+    });
+    if (!updatedCount) throw new Error('nenhum jogador do catálogo local corresponde aos atributos atuais');
+    return { ...baseCatalog, templates };
   }
 
   function isValidCatalog(c) {
@@ -574,16 +552,9 @@
 
   async function refreshCatalog() {
     try {
-      const [playersTs, typesTs] = await Promise.all([
-        fetchText(RAW_BASE + 'src/data/players.ts'),
-        fetchText(RAW_BASE + 'src/types.ts'),
-      ]);
-      const live = parseCatalog(playersTs, typesTs);
-      if (!isValidCatalog(live)) throw new Error('catálogo ao vivo em formato inesperado');
-      if (live.fingerprint !== SNAPSHOT.fingerprint) {
-        console.warn('[FutSENAI Cards] A fórmula de overall mudou no FutSENAI Cards; usando o catálogo embutido. Atualize futsenaicards-integration.js.');
-        return;
-      }
+      const playersTs = await fetchText(RAW_BASE + 'src/data/players.ts');
+      const live = applyPlayerAttributes(SNAPSHOT, parsePlayerAttributes(playersTs));
+      if (!isValidCatalog(live)) throw new Error('atributos ao vivo em formato inesperado');
       writeCache(live);
       const sig = signatureOf(live);
       if (sig !== catalogSig) { catalog = live; catalogSig = sig; renderCurrentPlayerCards(true); }
@@ -747,7 +718,7 @@
 
   // Exposição para testes em Node (não afeta o navegador).
   if (typeof window === 'undefined') {
-    module.exports = { parseCatalog, isValidCatalog, generateCard, findCatalogPlayer, SNAPSHOT, normalizeName };
+    module.exports = { parsePlayerAttributes, applyPlayerAttributes, isValidCatalog, generateCard, findCatalogPlayer, SNAPSHOT, normalizeName };
     return;
   }
 

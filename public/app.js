@@ -1,12 +1,17 @@
 const ANTI_RESENHA_STORAGE_KEY = 'futsenai.anti-resenha';
 const MAX_DRAW_OVERALL_AVERAGE_GAP_TENTHS = 61;
 
+function isAntiResenhaDefault() {
+  return window.location.hostname.toLowerCase() === 'vini-assuncao.github.io';
+}
+
 function loadAntiResenhaPreference() {
   try {
-    return window.localStorage.getItem(ANTI_RESENHA_STORAGE_KEY) === 'true';
+    const preference = window.localStorage.getItem(ANTI_RESENHA_STORAGE_KEY);
+    return preference === null ? isAntiResenhaDefault() : preference === 'true';
   } catch (error) {
     console.warn('Não foi possível carregar a preferência do modo anti-resenha.', error);
-    return false;
+    return isAntiResenhaDefault();
   }
 }
 
