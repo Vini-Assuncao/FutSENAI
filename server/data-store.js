@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const dataFile = path.join(__dirname, 'public', 'data', 'futsenai.json');
+const dataFile = path.join(__dirname, '..', 'public', 'data', 'futsenai.json');
 const emptyData = {
   schemaVersion: 1,
   nextIds: { players: 1, matches: 1, match_players: 1, goals: 1 },

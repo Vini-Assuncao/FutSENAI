@@ -65,16 +65,32 @@ Quando a API estiver indisponível, a interface tenta carregar esse JSON e perma
 
 ```text
 FutSENAI/
-├── data-store.js           # leitura e gravação atômica dos dados JSON
-├── server.js               # API REST, validações e servidor web
+├── server.js                    # ponto de entrada: inicia o servidor HTTP
+├── server/                      # backend (Express)
+│   ├── app.js                   # monta a aplicação, rotas e tratamento de erros
+│   ├── config.js                # porta, pastas e origens de edição local
+│   ├── data-store.js            # leitura e gravação atômica do JSON
+│   ├── http.js                  # erros com status, validações e handler final
+│   ├── local-editor.js          # bloqueia alterações fora de localhost:3000
+│   ├── uploads.js               # upload e remoção das fotos
+│   ├── stats.js                 # ponte para o cálculo compartilhado
+│   └── routes/                  # players.js, matches.js, dashboard.js
+├── public/                      # o que é publicado (também funciona como site estático)
+│   ├── index.html
+│   ├── css/styles.css
+│   ├── js/
+│   │   ├── main.js              # inicialização da interface
+│   │   ├── shared/futsenai-stats.js   # cálculos usados pelo servidor e pelo modo somente leitura
+│   │   ├── api.js               # chamadas à API e modo somente leitura
+│   │   ├── views/               # painel, jogadores, partidas, estatísticas, perfis e súmulas
+│   │   ├── modals/              # formulários de jogador, partida e gols
+│   │   ├── draw/teams.js        # sorteio de times e revelação das cartas
+│   │   └── cards/               # integração com o FutSENAI Cards
+│   ├── assets/                  # logos, capa do jornal e publicidade
+│   ├── data/futsenai.json       # jogadores, partidas, escalações e gols
+│   └── uploads/                 # fotos dos jogadores
 ├── package.json
-└── public/
-    ├── index.html
-    ├── styles.css
-    ├── app.js
-    ├── data/
-    │   └── futsenai.json    # jogadores, partidas, escalações e gols
-    └── uploads/             # fotos dos jogadores
+└── README.md
 ```
 
 ## API REST
