@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261023-admin-mode-v2">
+  <link rel="stylesheet" href="styles.css?v=20261027-breadcrumb-v1">
 </head>
 <body>
   <a class="skip-link" href="#pageContent">Pular para o conteúdo</a>
@@ -23,10 +23,7 @@
         </span>
         <span class="brand-copy"><strong>Fut<span>SENAI</span><span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong><small>FUTEBOL ENTRE AMIGOS</small></span>
       </a>
-      <div class="sidebar-admin-controls">
-        <button class="btn admin-mode-button" id="adminModeButton" type="button" hidden>🔒 Entrar no modo ADM</button>
-        <span class="admin-mode-notice" id="adminModeNotice" role="status" hidden>MODO ADM ATIVO</span>
-      </div>
+      <span class="admin-mode-notice" id="adminModeNotice" role="status" hidden>MODO ADM ATIVO</span>
       <div class="side-label">MENU PRINCIPAL</div>
       <nav class="main-nav" aria-label="Navegação principal">
         <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▦</span><span>Visão geral</span></button>
@@ -60,7 +57,7 @@
           <span class="brand-mark"><img src="logo_futsenai_branca.png" alt=""></span>
           <strong>Fut<span>SENAI</span><span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong>
         </a>
-        <div class="breadcrumb"><span>FutSENAI</span><span class="crumb-slash">/</span><strong id="pageCrumb">Visão geral</strong><a class="fresh-news-ticker" id="freshNewsTicker" href="https://pietro-guedes.github.io/FutSenai-Jornal/" target="_blank" rel="noopener noreferrer" aria-label="Notícia fresca! Abrir Notícias FutSENAI" hidden><span class="fresh-news-ticker-label">NOTÍCIA FRESCA!</span><div class="fresh-news-ticker-viewport"><div class="fresh-news-ticker-track"><span id="freshNewsTickerText"></span><span id="freshNewsTickerRepeat" aria-hidden="true"></span></div></div></a></div>
+        <div class="breadcrumb"><div class="breadcrumb-path" id="breadcrumbPath"><button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI</button><span class="crumb-slash" aria-hidden="true">/</span><strong aria-current="page">Visão geral</strong></div><a class="fresh-news-ticker" id="freshNewsTicker" href="https://pietro-guedes.github.io/FutSenai-Jornal/" target="_blank" rel="noopener noreferrer" aria-label="Notícia fresca! Abrir Notícias FutSENAI" hidden><span class="fresh-news-ticker-label">NOTÍCIA FRESCA!</span><div class="fresh-news-ticker-viewport"><div class="fresh-news-ticker-track"><span id="freshNewsTickerText"></span><span id="freshNewsTickerRepeat" aria-hidden="true"></span></div></div></a></div>
         <div class="topbar-actions"><div class="today-chip"><span>◷</span><span id="todayLabel">Hoje</span></div></div>
       </header>
 
@@ -73,6 +70,7 @@
   <div class="modal-root" id="modalRoot" aria-live="polite"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="noscript-msg">O FutSENAI precisa do JavaScript ativado para funcionar.</p></noscript>
-  <script src="app.js?v=20261023-admin-mode-v2" defer></script>
+  <script src="app.js?v=20261027-breadcrumb-v2" defer></script>
+  <script src="futsenaicards-integration.js?v=20261027-overall-v2" defer></script>
 </body>
 </html>

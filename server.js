@@ -7,13 +7,11 @@ const dataStore = require('./data-store');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const ADMIN_PASSWORD = process.env.FUTSENAI_ADMIN_PASSWORD || '';
-const ADMIN_SESSION_COOKIE = 'futsenai_admin';
-const ADMIN_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const ADMIN_LOGIN_MAX_ATTEMPTS = 8;
-const adminSessions = new Map();
-const adminLoginAttempts = new Map();
+const LOCAL_EDITOR_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://[::1]:3000'
+]);
 const publicDirectory = path.join(__dirname, 'public');
 const uploadsDirectory = path.join(publicDirectory, 'uploads');
 fs.mkdirSync(uploadsDirectory, { recursive: true });
@@ -45,45 +43,16 @@ function httpError(status, message) {
   error.status = status;
   return error;
 }
-function adminSessionId(req) {
-  const cookie = req.headers.cookie?.split(';').map(part => part.trim())
-    .find(part => part.startsWith(`${ADMIN_SESSION_COOKIE}=`));
-  const sessionId = cookie?.slice(ADMIN_SESSION_COOKIE.length + 1) || '';
-  return /^[a-f0-9]{64}$/.test(sessionId) ? sessionId : '';
+function isLoopbackAddress(address) {
+  return address === '::1' || address === '127.0.0.1' || address?.startsWith('::ffff:127.');
 }
-function hasAdminSession(req) {
-  const sessionId = adminSessionId(req);
-  const expiresAt = adminSessions.get(sessionId);
-  if (!expiresAt) return false;
-  if (expiresAt <= Date.now()) {
-    adminSessions.delete(sessionId);
-    return false;
+function requireLocalEditor(req, res, next) {
+  const host = req.get('host')?.toLowerCase();
+  const origin = req.get('origin');
+  if (PORT !== 3000 || !isLoopbackAddress(req.socket.remoteAddress)
+    || !LOCAL_EDITOR_ORIGINS.has(origin) || !LOCAL_EDITOR_ORIGINS.has(`http://${host}`)) {
+    return res.status(403).json({ error: 'Edição disponível somente no servidor local em http://localhost:3000.' });
   }
-  return true;
-}
-function setAdminSessionCookie(res, req, sessionId) {
-  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  res.cookie(ADMIN_SESSION_COOKIE, sessionId, {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure,
-    path: '/',
-    maxAge: ADMIN_SESSION_MAX_AGE_MS
-  });
-}
-function matchesAdminPassword(candidate) {
-  const expectedHash = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest();
-  const candidateHash = crypto.createHash('sha256').update(candidate).digest();
-  return crypto.timingSafeEqual(expectedHash, candidateHash);
-}
-function adminLoginRateLimit(req, res, next) {
-  const address = req.ip || req.socket.remoteAddress || 'unknown';
-  const now = Date.now();
-  const attempt = adminLoginAttempts.get(address);
-  if (attempt && attempt.expiresAt > now && attempt.count >= ADMIN_LOGIN_MAX_ATTEMPTS) {
-    return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.' });
-  }
-  if (!attempt || attempt.expiresAt <= now) adminLoginAttempts.set(address, { count: 0, expiresAt: now + ADMIN_LOGIN_WINDOW_MS });
   next();
 }
 function requiredText(value, field, max = 120) {
@@ -258,43 +227,9 @@ function getMatchDetail(matchId, data = dataStore.getData()) {
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'FutSENAI', database: 'JSON' }));
-app.get('/api/auth/status', (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.json({ authenticated: hasAdminSession(req), configured: Boolean(ADMIN_PASSWORD) });
-});
-app.post('/api/auth/login', adminLoginRateLimit, (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  if (!ADMIN_PASSWORD) {
-    return res.status(503).json({ error: 'O modo ADM ainda não foi configurado no servidor.' });
-  }
-  const address = req.ip || req.socket.remoteAddress || 'unknown';
-  const candidate = typeof req.body?.password === 'string' ? req.body.password : '';
-  if (!matchesAdminPassword(candidate)) {
-    const attempt = adminLoginAttempts.get(address);
-    if (attempt) attempt.count++;
-    return res.status(401).json({ error: 'Senha incorreta.' });
-  }
-  adminLoginAttempts.delete(address);
-  const now = Date.now();
-  for (const [sessionId, expiresAt] of adminSessions) {
-    if (expiresAt <= now) adminSessions.delete(sessionId);
-  }
-  const sessionId = crypto.randomBytes(32).toString('hex');
-  adminSessions.set(sessionId, now + ADMIN_SESSION_MAX_AGE_MS);
-  setAdminSessionCookie(res, req, sessionId);
-  res.json({ authenticated: true });
-});
-app.post('/api/auth/logout', (req, res) => {
-  const sessionId = adminSessionId(req);
-  if (sessionId) adminSessions.delete(sessionId);
-  res.clearCookie(ADMIN_SESSION_COOKIE, { httpOnly: true, sameSite: 'strict', secure: req.secure || req.headers['x-forwarded-proto'] === 'https', path: '/' });
-  res.set('Cache-Control', 'no-store');
-  res.json({ authenticated: false });
-});
 app.use('/api', (req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  if (!hasAdminSession(req)) return res.status(401).json({ error: 'Entre no modo ADM para fazer alterações.' });
-  next();
+  requireLocalEditor(req, res, next);
 });
 
 app.get('/api/dashboard', (req, res, next) => {

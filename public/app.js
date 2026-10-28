@@ -1,4 +1,5 @@
 const ANTI_RESENHA_STORAGE_KEY = 'futsenai.anti-resenha';
+const MAX_DRAW_OVERALL_AVERAGE_GAP_TENTHS = 61;
 
 function loadAntiResenhaPreference() {
   try {
@@ -21,6 +22,7 @@ function saveAntiResenhaPreference(enabled) {
 
 const state = {
   view: 'dashboard',
+  previousView: null,
   dashboard: null,
   players: [],
   matches: [],
@@ -37,8 +39,7 @@ const state = {
   statsSortDirection: 'desc',
   readOnly: false,
   serverAvailable: false,
-  isAdmin: false,
-  authConfigured: false,
+  localServer: false,
   antiResenha: loadAntiResenhaPreference(),
   staticData: null
 };
@@ -50,13 +51,25 @@ const viewNames = { dashboard: 'Visão geral', players: 'Jogadores', matches: 'P
 const JOURNAL_HOME_URL = 'https://pietro-guedes.github.io/FutSenai-Jornal/';
 const JOURNAL_FEED_URL = 'https://raw.githubusercontent.com/Pietro-Guedes/FutSenai-Jornal/main/noticias.json';
 const readOnlyActions = new Set(['new-player', 'edit-player', 'archive-player', 'reactivate-player', 'new-goal', 'delete-match', 'delete-goal', 'delete-assist']);
-const authEndpoints = new Set(['/api/auth/login', '/api/auth/logout']);
 function canEdit() {
-  return state.serverAvailable && state.isAdmin && !state.readOnly;
+  return state.serverAvailable && state.localServer && !state.readOnly;
+}
+function isLocalServerOrigin() {
+  const { hostname, port, protocol } = window.location;
+  return protocol === 'http:' && port === '3000'
+    && ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
 }
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+function playerOverall(playerName) {
+  const overall = window.FutSENAIPlayerCards?.getUncommonOverall(playerName);
+  return Number.isInteger(overall) ? overall : null;
+}
+function overallMarkup(overall, compact = false) {
+  const value = Number.isInteger(overall) ? overall : '—';
+  return `<span class="player-overall">${compact ? '<span class="player-overall-full">Overall</span><span class="player-overall-short" aria-hidden="true">Over</span>' : 'Overall'} <strong>${value}</strong></span>`;
 }
 function initials(name) {
   return String(name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase();
@@ -303,9 +316,8 @@ function outcomeLabel(match) {
 }
 async function api(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
-  const endpoint = new URL(url, document.baseURI).pathname;
-  if (method !== 'GET' && !authEndpoints.has(endpoint) && !canEdit()) {
-    throw new Error('Entre no modo ADM para fazer alterações.');
+  if (method !== 'GET' && !canEdit()) {
+    throw new Error('Edição disponível somente no servidor local em http://localhost:3000.');
   }
   if (state.readOnly) return staticApi(url, method);
   let response;
@@ -332,10 +344,6 @@ async function api(url, options = {}) {
   let data;
   try { data = await response.json(); } catch { data = {}; }
   if (!response.ok) {
-    if (response.status === 401 && method !== 'GET' && !authEndpoints.has(endpoint)) {
-      state.isAdmin = false;
-      updateChrome();
-    }
     const isPlayerHistoryRequest = method === 'GET' && /\/api\/players\/\d+\/history$/.test(new URL(url, document.baseURI).pathname);
     if (response.status === 404 && isPlayerHistoryRequest && !data.error) {
       try {
@@ -549,7 +557,7 @@ async function enableReadOnlyMode() {
   state.staticData = data;
   state.readOnly = true;
   state.serverAvailable = false;
-  state.isAdmin = false;
+  state.localServer = false;
   document.body.classList.add('read-only-mode');
   updateChrome();
   document.getElementById('storageStatus').textContent = 'Visualizando a cópia publicada dos dados.';
@@ -571,13 +579,6 @@ function updateChrome() {
   const editor = canEdit();
   document.body.classList.toggle('editor-mode', editor);
   document.body.classList.toggle('view-only-mode', !editor);
-  const editorButton = document.getElementById('adminModeButton');
-  if (editorButton) {
-    editorButton.hidden = !state.serverAvailable;
-    editorButton.textContent = editor ? '⇥ Sair do modo ADM' : '🔒 Entrar no modo ADM';
-    editorButton.title = state.authConfigured ? '' : 'Configure FUTSENAI_ADMIN_PASSWORD no servidor para habilitar o modo ADM.';
-    editorButton.disabled = false;
-  }
   const editorNotice = document.getElementById('adminModeNotice');
   if (editorNotice) editorNotice.hidden = !editor;
   document.body.classList.toggle('anti-resenha-mode', state.antiResenha);
@@ -587,9 +588,7 @@ function updateChrome() {
   const hasVisibleFreshNews = !state.antiResenha && Boolean(freshJournalNews && isFreshJournalNews(freshJournalNews.createdAt));
   if (freshTicker) freshTicker.hidden = !hasVisibleFreshNews;
   document.querySelector('.topbar')?.classList.toggle('has-fresh-news', hasVisibleFreshNews);
-  document.getElementById('pageCrumb').textContent = state.view === 'playerDetail' && state.playerProfile
-    ? state.playerProfile.player.name
-    : viewNames[state.view] || 'FutSENAI';
+  document.getElementById('breadcrumbPath').innerHTML = renderBreadcrumb();
   document.querySelectorAll('.anti-resenha-indicator').forEach(indicator => { indicator.hidden = !state.antiResenha; });
   const activeView = state.view === 'matchDetail' ? 'matches' : state.view === 'playerDetail' ? 'players' : state.view;
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === activeView));
@@ -597,12 +596,30 @@ function updateChrome() {
   document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(date).replace('.', '');
   if (state.dashboard) document.getElementById('navPlayerCount').textContent = state.dashboard.summary.activePlayers;
 }
+function renderBreadcrumb() {
+  const home = '<button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI</button>';
+  const crumb = (label, view, current = false) => current
+    ? `<strong aria-current="page">${esc(label)}</strong>`
+    : `<button type="button" class="crumb-link" data-crumb-view="${view}">${esc(label)}</button>`;
+  const slash = '<span class="crumb-slash" aria-hidden="true">/</span>';
+  if (state.view === 'matchDetail') {
+    const date = state.matchDetail?.played_on ? numericDate(state.matchDetail.played_on) : 'Partida';
+    return `${home}${slash}${crumb('Partida', 'matches')}${slash}${crumb(`Detalhes Partida ${date}`, '', true)}`;
+  }
+  if (state.view === 'playerDetail') {
+    const name = state.playerProfile?.player.name || viewNames.playerDetail;
+    return `${home}${slash}${crumb('Jogadores', 'players')}${slash}${crumb(name, '', true)}`;
+  }
+  const label = viewNames[state.view] || 'Visão geral';
+  return `${home}${slash}${crumb(label, '', true)}`;
+}
 function setSidebarOpen(isOpen) {
   document.getElementById('sidebar').classList.toggle('open', isOpen);
   document.body.classList.toggle('sidebar-open', isOpen);
   document.getElementById('mobileMenu').setAttribute('aria-expanded', String(isOpen));
 }
 async function navigate(view) {
+  if (state.view !== view) state.previousView = state.view;
   state.view = view;
   state.selectedMatch = null;
   setSidebarOpen(false);
@@ -640,11 +657,11 @@ function teamIconClass(match, side) {
 function renderMatchRow(match) {
   const opponent = match.opponent_type === 'second_year';
   const playersText = opponent ? `${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'} do 3º A` : `${match.total_players} ${match.total_players === 1 ? 'jogador' : 'jogadores'}`;
-  return `<div class="match-row"><div><div class="match-meta"><span class="match-date"><span class="match-date-full">${shortDate(match.played_on, true)}</span><span class="match-date-mobile">${numericDate(match.played_on)}</span></span><span>•</span><span>${playersText}</span><span>•</span><span>Quadra</span><span class="match-kind ${opponent ? 'interclass' : ''}">${opponent ? 'INTERCLASSE' : 'ENTRE NÓS'}</span></div><div class="match-teams"><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'A')}">●</span><span>${esc(match.team_a_name)}</span></div><span class="versus">×</span><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'B')}">●</span><span>${esc(match.team_b_name)}</span></div></div></div><div class="match-score">${match.score_a}<span class="dash">:</span>${match.score_b}</div></div>`;
+  return `<div class="match-row" data-action="open-match" data-id="${match.id}" tabindex="0" aria-label="Abrir detalhes da partida de ${shortDate(match.played_on, true)}"><div><div class="match-meta"><span class="match-date"><span class="match-date-full">${shortDate(match.played_on, true)}</span><span class="match-date-mobile">${numericDate(match.played_on)}</span></span><span>•</span><span>${playersText}</span><span>•</span><span>Quadra</span><span class="match-kind ${opponent ? 'interclass' : ''}">${opponent ? 'INTERCLASSE' : 'ENTRE NÓS'}</span></div><div class="match-teams"><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'A')}">●</span><span>${esc(match.team_a_name)}</span></div><span class="versus">×</span><div class="team-mini"><span class="team-badge ${teamIconClass(match, 'B')}">●</span><span>${esc(match.team_b_name)}</span></div></div></div><div class="match-score">${match.score_a}<span class="dash">:</span>${match.score_b}</div></div>`;
 }
 function scorerRow(player, index) {
   const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.nickname || player.name)}</button><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} gols</div></div>`;
+  return `<div class="scorer-row ${rankClass ? `rank-${rankClass}` : ''}" data-action="open-player-profile" data-id="${player.id}" tabindex="0" aria-label="Abrir detalhes de ${esc(player.nickname || player.name)}"><div class="rank-number ${rankClass}">${String(index + 1).padStart(2, '0')}</div>${avatar(player, 'small')}<div class="scorer-info"><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.nickname || player.name)}</button><span>${player.matches_played} partidas · ${player.wins} vitórias</span></div><div class="goal-count">${player.goals} gols</div></div>`;
 }
 async function renderDashboard() {
   setLoading('Atualizando o placar da turma...');
@@ -671,7 +688,7 @@ async function renderDashboard() {
       <article class="panel"><div class="panel-head"><div><h2 class="panel-title">Artilharia da turma</h2><div class="panel-subtitle">Gols</div></div><button class="text-action" data-action="go-stats">Ranking →</button></div><div class="scorer-list">${scorerHtml}</div></article>
     </section>
     <section class="dashboard-bottom ${state.antiResenha ? 'anti-resenha-dashboard' : ''}">
-      ${state.antiResenha ? '' : '<article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></div></article>'}
+      ${state.antiResenha ? '' : '<article class="panel dashboard-ad-panel"><div class="panel-head"><div><h2 class="panel-title">Publicidade</h2><div class="panel-subtitle">Espaço publicitário do FutSENAI</div></div><span class="dashboard-ad-badge">ANÚNCIO</span></div><div class="dashboard-ad-content"><a href="https://www.tiktok.com/@falatuu.nyk" target="_blank" rel="noopener noreferrer" aria-label="Acessar o TikTok do NS13"><img src="anuncio_ns13.png" alt="Publicidade NS13 — Ouça as novas músicas do NS13" loading="lazy"></a></div></article>'}
       <article class="panel quick-panel"><div class="panel-head"><div><h2 class="panel-title">Atalhos rápidos</h2><div class="panel-subtitle">Mais praticidade para organizar o jogo</div></div></div><div class="quick-actions">
         <button class="quick-action" data-action="new-match"><span class="quick-action-icon">⚑︎</span><span><strong>${canEdit() ? 'Nova partida' : 'Testar sorteio'}</strong><span>${canEdit() ? 'Monte os times e registre' : 'Prévia sem criar partida'}</span></span></button>
         <button class="quick-action" data-action="new-player"><span class="quick-action-icon">♟︎</span><span><strong>Novo jogador</strong><span>Adicione um amigo</span></span></button>
@@ -682,7 +699,8 @@ async function renderDashboard() {
 }
 function playerCard(player) {
   const archived = !player.is_active;
-  return `<article class="player-card"><div class="player-card-head">${avatar(player)}<div class="player-card-name"><h3><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.name)}</button>${archived ? '<span class="archived-label">ARQUIVADO</span>' : ''}</h3><p>${player.matches_played} ${player.matches_played === 1 ? 'partida disputada' : 'partidas disputadas'}</p><span class="player-quality">Qualidade <strong>${player.quality || 3}/5</strong></span></div></div><div class="player-mini-stats"><div><strong>${player.matches_played}</strong><span>PARTIDAS</span></div><div><strong>${player.goals}</strong><span>GOLS</span></div><div><strong>${player.wins}</strong><span>VITÓRIAS</span></div></div><div class="player-card-actions"><button class="btn btn-secondary btn-small" data-action="edit-player" data-id="${player.id}">✎ Editar</button>${archived ? `<button class="btn btn-secondary btn-small" data-action="reactivate-player" data-id="${player.id}">Reativar</button>` : `<button class="btn btn-danger btn-small" data-action="archive-player" data-id="${player.id}">Arquivar</button>`}</div></article>`;
+  const overall = playerOverall(player.name);
+  return `<article class="player-card" data-action="open-player-profile" data-id="${player.id}" role="group" tabindex="0" aria-label="Abrir detalhes de ${esc(player.name)}"><div class="player-card-head">${avatar(player)}<div class="player-card-name"><h3><button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${player.id}">${esc(player.name)}</button>${archived ? '<span class="archived-label">ARQUIVADO</span>' : ''}</h3><p>${player.matches_played} ${player.matches_played === 1 ? 'partida disputada' : 'partidas disputadas'}</p>${overallMarkup(overall, true)}</div></div><div class="player-mini-stats"><div><strong>${player.matches_played}</strong><span>PARTIDAS</span></div><div><strong>${player.goals}</strong><span>GOLS</span></div><div><strong>${player.wins}</strong><span>VITÓRIAS</span></div></div><div class="player-card-actions"><button class="btn btn-secondary btn-small" data-action="edit-player" data-id="${player.id}">✎ Editar</button>${archived ? `<button class="btn btn-secondary btn-small" data-action="reactivate-player" data-id="${player.id}">Reativar</button>` : `<button class="btn btn-danger btn-small" data-action="archive-player" data-id="${player.id}">Arquivar</button>`}</div></article>`;
 }
 async function renderPlayers() {
   setLoading('Carregando elenco...');
@@ -692,7 +710,7 @@ async function renderPlayers() {
   updateChrome();
   const active = state.players.filter(p => p.is_active).length;
   const filtered = state.players.filter(p => `${p.name}`.toLowerCase().includes(state.playerSearch.toLowerCase()));
-  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">ELENCO</div><h1>Jogadores<span style="color:var(--red)">.</span></h1><p>Qualidade, foto e estatísticas de cada jogador — tudo em um só lugar.</p></div><div class="heading-actions"><button class="btn btn-primary" data-action="new-player">＋ Cadastrar jogador</button></div></section>
+  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">ELENCO</div><h1>Jogadores<span style="color:var(--red)">.</span></h1><p>Overall da carta Incomum, foto e estatísticas de cada jogador — tudo em um só lugar.</p></div><div class="heading-actions"><button class="btn btn-primary" data-action="new-player">＋ Cadastrar jogador</button></div></section>
     <div class="toolbar"><label class="searchbox"><span>⌕</span><input id="playerSearch" type="search" placeholder="Buscar jogador pelo nome..." value="${esc(state.playerSearch)}" autocomplete="off"></label>${scopeFilterHtml()}<select class="filter-select" id="playerStatus"><option value="active" ${state.playerStatus === 'active' ? 'selected' : ''}>Jogadores ativos</option><option value="all" ${state.playerStatus === 'all' ? 'selected' : ''}>Incluir arquivados</option></select><span class="results-label" id="playerResultsLabel">${filtered.length} encontrados · ${active} ativos</span></div>
     <div class="player-grid" id="playerGrid">${filtered.length ? filtered.map(playerCard).join('') : `<div class="empty-state"><div class="empty-symbol">♟</div><h3>${state.playerSearch ? 'Nenhum jogador encontrado' : 'Seu elenco começa com um nome'}</h3><p>${state.playerSearch ? 'Tente buscar por outro nome.' : 'Cadastre seus amigos, coloque uma foto e comece a montar os times.'}</p>${state.playerSearch ? '' : '<button class="btn btn-primary" data-action="new-player">＋ Cadastrar primeiro jogador</button>'}</div>`}</div>`;
 }
@@ -710,7 +728,7 @@ function matchCard(match) {
   const players = interclass ? `${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'} do 3º A` : `${match.total_players} ${match.total_players === 1 ? 'jogador' : 'jogadores'}`;
   const teamA = interclass ? '3º A' : 'Time Vermelho';
   const teamB = interclass ? '2º Ano' : 'Time Branco';
-  return `<article class="match-card ${interclass ? 'match-card-interclass' : ''}"><div class="match-card-top"><span><strong>${shortDate(match.played_on, true)}</strong> · Quadra <em class="match-kind ${interclass ? 'interclass' : ''}">${interclass ? 'INTERCLASSE' : 'ENTRE NÓS'}</em></span><span>${players}</span></div><div class="match-card-scoreboard"><div class="match-team-box"><div class="team-large-icon ${teamIconClass(match, 'A')}">●</div><strong title="${esc(teamA)}">${esc(teamA)}</strong><small>${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'}</small></div><div class="scoreboard-score">${match.score_a}<span>:</span>${match.score_b}</div><div class="match-team-box"><div class="team-large-icon ${teamIconClass(match, 'B')}">●</div><strong title="${esc(teamB)}">${esc(teamB)}</strong><small>${interclass ? 'Placar total do adversário' : `${match.players_b} ${match.players_b === 1 ? 'jogador' : 'jogadores'}`}</small></div></div><div class="match-card-bottom"><span class="participants-label"><b>${match.total_goals}</b> gols · ${players}</span><div class="match-card-actions"><button data-action="open-match" data-id="${match.id}">Detalhes ↗</button><button data-action="delete-match" data-id="${match.id}">Excluir</button></div></div></article>`;
+  return `<article class="match-card ${interclass ? 'match-card-interclass' : ''}" data-action="open-match" data-id="${match.id}" tabindex="0" aria-label="Abrir detalhes da partida de ${shortDate(match.played_on, true)}"><div class="match-card-top"><span><strong>${shortDate(match.played_on, true)}</strong> · Quadra <em class="match-kind ${interclass ? 'interclass' : ''}">${interclass ? 'INTERCLASSE' : 'ENTRE NÓS'}</em></span><span>${players}</span></div><div class="match-card-scoreboard"><div class="match-team-box"><div class="team-large-icon ${teamIconClass(match, 'A')}">●</div><strong title="${esc(teamA)}">${esc(teamA)}</strong><small>${match.players_a} ${match.players_a === 1 ? 'jogador' : 'jogadores'}</small></div><div class="scoreboard-score">${match.score_a}<span>:</span>${match.score_b}</div><div class="match-team-box"><div class="team-large-icon ${teamIconClass(match, 'B')}">●</div><strong title="${esc(teamB)}">${esc(teamB)}</strong><small>${interclass ? 'Placar total do adversário' : `${match.players_b} ${match.players_b === 1 ? 'jogador' : 'jogadores'}`}</small></div></div><div class="match-card-bottom"><span class="participants-label"><b>${match.total_goals}</b> gols · ${players}</span><div class="match-card-actions"><button data-action="open-match" data-id="${match.id}">Detalhes ↗</button><button data-action="delete-match" data-id="${match.id}">Excluir</button></div></div></article>`;
 }
 async function renderMatches() {
   setLoading('Buscando o histórico das partidas...');
@@ -762,7 +780,7 @@ async function renderPlayerDetail() {
     const gameType = interclass ? '⚔ CONTRA O 2º ANO' : '⚽ ENTRE NÓS · 3º A';
     return `<article class="player-history-match"><div class="player-history-match-date">${shortDate(match.played_on, true)}<span class="match-kind ${interclass ? 'interclass' : ''}">${gameType}</span></div><div class="player-history-match-score"><strong>${match.score_a}</strong><span>:</span><strong>${match.score_b}</strong></div><div class="player-history-match-detail"><span>${playerTeam}</span><span class="player-history-result ${resultClass}"><b aria-hidden="true">${resultIcon}</b> ${resultLabel}</span></div><div class="player-history-contributions"><span class="player-history-contribution is-goals"><span aria-hidden="true">⚽</span><strong class="${match.goals > 0 ? 'is-positive' : ''}">${match.goals}</strong><small>${match.goals === 1 ? 'gol' : 'gols'}</small></span><span class="player-history-contribution is-assists"><span aria-hidden="true">🎯</span><strong class="${match.assists > 0 ? 'is-positive' : ''}">${match.assists}</strong><small>assist.</small></span>${match.own_goals ? `<span class="player-history-contribution is-own-goals"><span aria-hidden="true">↩</span><strong>${match.own_goals}</strong><small>contra</small></span>` : ''}</div><button type="button" class="btn btn-secondary btn-small" data-action="open-match" data-id="${match.id}">Súmula ↗</button></article>`;
   }).join('') : '<div class="empty-inline"><strong>Nenhuma partida no histórico</strong>Quando o jogador participar de uma partida, o desempenho aparecerá aqui.</div>';
-  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">DESEMPENHO INDIVIDUAL</div><h1>Histórico do jogador<span style="color:var(--red)">.</span></h1><p>Estatísticas separadas por modo de jogo e partidas recentes em uma única linha do tempo.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="back-player-profile">← Voltar</button></div></section><section class="panel player-profile-hero"><div class="player-profile-identity">${avatar(player, 'player-profile-avatar')}<div><span class="eyebrow">${player.is_active ? 'JOGADOR ATIVO' : 'JOGADOR ARQUIVADO'}</span><h2>${esc(player.name)}</h2><span>Qualidade ${player.quality || 3}/5</span></div></div></section><div class="player-mode-grid">${playerModeStats('Entre nós · 3º A', 'Partidas entre jogadores da turma', stats.internal)}${playerModeStats('Interclasse · 2º Ano', 'Partidas contra o 2º Ano', stats.interclass)}</div><section class="panel player-history-panel"><div class="panel-head"><div><h2 class="panel-title">Últimas partidas</h2><div class="panel-subtitle">Os dois modos de jogo, em ordem da mais recente</div></div><span class="results-label">${matches.length} ${matches.length === 1 ? 'partida' : 'partidas'}</span></div><div class="player-history-list">${matchHistory}</div></section>`;
+  pageContent.innerHTML = `<section class="page-heading"><div><div class="eyebrow">DESEMPENHO INDIVIDUAL</div><h1>Histórico do jogador<span style="color:var(--red)">.</span></h1><p>Estatísticas separadas por modo de jogo e partidas recentes em uma única linha do tempo.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="back-player-profile">← Voltar</button></div></section><section class="panel player-profile-hero"><div class="player-profile-identity">${avatar(player, 'player-profile-avatar')}<div><span class="eyebrow">${player.is_active ? 'JOGADOR ATIVO' : 'JOGADOR ARQUIVADO'}</span><h2>${esc(player.name)}</h2>${overallMarkup(playerOverall(player.name))}</div></div></section><div class="player-mode-grid">${playerModeStats('Entre nós · 3º A', 'Partidas entre jogadores da turma', stats.internal)}${playerModeStats('Interclasse · 2º Ano', 'Partidas contra o 2º Ano', stats.interclass)}</div><section class="panel player-history-panel"><div class="panel-head"><div><h2 class="panel-title">Últimas partidas</h2><div class="panel-subtitle">Os dois modos de jogo, em ordem da mais recente</div></div><span class="results-label">${matches.length} ${matches.length === 1 ? 'partida' : 'partidas'}</span></div><div class="player-history-list">${matchHistory}</div></section>`;
 }
 function statsSortHeader(label, key) {
   const sorted = state.statsSort === key;
@@ -795,7 +813,8 @@ function renderStatsContent() {
   });
   const tableRows = ranking.length ? ranking.map((p, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${p.id}">${esc(p.name)}</button></div></td><td class="num">${p.matches_played}</td><td class="num">${p.goals}</td><td class="num">${p.assists}</td><td class="num">${p.wins}</td><td class="num">${p.losses}</td><td class="num">${p.goals + p.assists}</td></tr>`;
+    const numericCell = (key, value) => `<td class="num${state.statsSort === key ? ' is-sorted' : ''}">${value}</td>`;
+    return `<tr class="${rankClass ? `rank-${rankClass}` : ''}" data-action="open-player-profile" data-id="${p.id}" tabindex="0" aria-label="Abrir detalhes de ${esc(p.name)}"><td><div class="player-cell"><span class="rank-number ${rankClass}">${i + 1}</span>${avatar(p)}<button type="button" class="player-profile-link" data-action="open-player-profile" data-id="${p.id}">${esc(p.name)}</button></div></td>${numericCell('matches_played', p.matches_played)}${numericCell('goals', p.goals)}${numericCell('assists', p.assists)}${numericCell('wins', p.wins)}${numericCell('losses', p.losses)}${numericCell('ga', p.goals + p.assists)}</tr>`;
   }).join('') : `<tr><td colspan="7"><div class="empty-inline"><strong>Sem estatísticas neste filtro</strong>Registre partidas e gols, ou selecione outro tipo de partida.</div></td></tr>`;
   const top = [...result.players].filter(player => player.goals > 0)
     .sort((left, right) => right.goals - left.goals || right.assists - left.assists || right.wins - left.wins || left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }))[0];
@@ -805,7 +824,7 @@ function renderStatsContent() {
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
     <section class="stats-grid">${statCard('Partidas', a.matches, '⚑', 'De acordo com o filtro')}${statCard('Gols', a.goals, '⚽︎', 'Todos os gols desses jogos')}${statCard('Média por partida', a.averageGoals, '↗', 'Gols por jogo considerado')}${statCard('Empates', a.draws, '＝', 'Jogos que terminaram iguais')}</section>
     ${rivalryPanel(a.secondYearRivalry)}
-    <div class="stats-page-grid"><article class="panel"><div class="panel-head"><div><h2 class="panel-title">Ranking dos jogadores</h2><div class="panel-subtitle">Gols, assistências e desempenho, clique nas colunas para ordenar</div></div></div><div class="table-wrap"><table class="stats-table"><thead><tr><th>Jogador</th>${statsSortHeader('Jogos', 'matches_played')}${statsSortHeader('Gols', 'goals')}${statsSortHeader('Assistências', 'assists')}${statsSortHeader('Vitórias', 'wins')}${statsSortHeader('Derrotas', 'losses')}${statsSortHeader('G/A', 'ga')}</tr></thead><tbody>${tableRows}</tbody></table></div></article>
+    <div class="stats-page-grid"><article class="panel"><div class="panel-head"><div><h2 class="panel-title">Ranking dos jogadores</h2><div class="panel-subtitle">Gols, assistências e desempenho, clique nas colunas para ordenar</div></div></div><div class="table-wrap"><table class="stats-table"><colgroup><col class="stats-player-column"><col span="2" class="stats-number-column"><col class="stats-assists-column"><col span="3" class="stats-number-column"></colgroup><thead><tr><th>Jogador</th>${statsSortHeader('Jogos', 'matches_played')}${statsSortHeader('Gols', 'goals')}${statsSortHeader('Assistências', 'assists')}${statsSortHeader('Vitórias', 'wins')}${statsSortHeader('Derrotas', 'losses')}${statsSortHeader('G/A', 'ga')}</tr></thead><tbody>${tableRows}</tbody></table></div></article>
     <div><article class="stat-hero top-scorer-hero"><div class="stat-hero-copy"><div class="eyebrow">ARTILHEIRO</div><strong>${top ? `${esc(top.name)} - ${top.goals} ${top.goals === 1 ? 'gol' : 'gols'}` : '—'}</strong><p>${top ? `${esc(top.name)} lidera a artilharia.` : 'Quando houver gols nesse recorte, o destaque aparece aqui.'}</p></div>${top ? avatar(top, 'stat-hero-avatar') : ''}</article><article class="stat-hero top-waiter-hero"><div class="stat-hero-copy"><div class="eyebrow">GARÇOM</div><strong>${topWaiter ? `${esc(topWaiter.name)} - ${topWaiter.assists} ${topWaiter.assists === 1 ? 'assistência' : 'assistências'}` : '—'}</strong><p>${topWaiter ? `${esc(topWaiter.name)} lidera as assistências.` : 'Quando houver assistências nesse recorte, o destaque aparece aqui.'}</p></div>${topWaiter ? avatar(topWaiter, 'stat-hero-avatar') : ''}</article><article class="panel" style="margin-top:17px"><div class="panel-head"><div><h2 class="panel-title">Resumo do histórico</h2><div class="panel-subtitle">Números das partidas filtradas</div></div></div><div class="stats-metric-list"><div class="stats-metric"><span>Jogadores com estatísticas</span><strong>${ranking.length}</strong></div><div class="stats-metric"><span>Média de gols por partida</span><strong>${a.averageGoals}</strong></div><div class="stats-metric"><span>Partidas empatadas</span><strong>${a.draws}</strong></div><div class="stats-metric"><span>Total de partidas</span><strong>${a.matches}</strong></div></div></article></div></div>`;
 }
 async function renderMatchDetail() {
@@ -814,6 +833,7 @@ async function renderMatchDetail() {
   const result = await api(`/api/matches/${state.selectedMatch}`);
   const match = result.data;
   state.matchDetail = match;
+  updateChrome();
   const interclass = match.opponent_type === 'second_year';
 
   const groupedGoals = new Map();
@@ -869,40 +889,6 @@ function modal(title, subtitle, body, footer, wide = false) {
   const first = modalRoot.querySelector('input:not([type="hidden"]),select,button:not([data-modal-close])');
   if (first) window.setTimeout(() => first.focus(), 40);
 }
-function openAdminLoginModal() {
-  const body = `<form id="adminLoginForm" class="modal-body"><div class="form-field full"><label for="adminPassword">Senha do administrador</label><input id="adminPassword" name="password" type="password" autocomplete="current-password" required><div class="form-help">A sessão permanece ativa neste navegador até você sair ou ela expirar.</div></div></form>`;
-  modal('Entrar no modo ADM', 'Digite a senha para habilitar as alterações.', body, '<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="adminLoginForm" class="btn btn-primary">Entrar →</button>');
-}
-async function submitAdminLogin(form) {
-  const submitButton = modalRoot.querySelector('button[type="submit"]');
-  submitButton.disabled = true;
-  try {
-    await api('/api/auth/login', jsonOptions('POST', { password: new FormData(form).get('password') }));
-    state.isAdmin = true;
-    state.authConfigured = true;
-    closeModal();
-    updateChrome();
-    toast('Modo ADM ativado.');
-    await renderCurrent();
-  } catch (error) {
-    toast(error.message, 'error');
-    const password = document.getElementById('adminPassword');
-    if (password) { password.value = ''; password.focus(); }
-    submitButton.disabled = false;
-  }
-}
-async function toggleAdminMode() {
-  if (!state.serverAvailable) return;
-  if (!canEdit()) {
-    openAdminLoginModal();
-    return;
-  }
-  const result = await api('/api/auth/logout', { method: 'POST' });
-  state.isAdmin = result.authenticated;
-  updateChrome();
-  toast('Modo de visualização ativado.');
-  await renderCurrent();
-}
 function closeModal() {
   modalRoot.innerHTML = '';
   delete modalRoot.dataset.open;
@@ -910,15 +896,14 @@ function closeModal() {
 }
 function openPlayerModal(player = null) {
   const editing = Boolean(player);
-  const selectedQuality = Number(player?.quality) || 3;
   const previewImage = (photoPath, alt) => {
     if (!photoPath) return esc(initials(player?.name || 'FS'));
     const imagePath = state.readOnly ? new URL(photoPath.replace(/^\/+/, ''), document.baseURI).href : photoPath;
     return `<img src="${esc(imagePath)}" alt="${alt}">`;
   };
-  const body = `<form id="playerForm" enctype="multipart/form-data"><div class="modal-body"><div class="form-grid"><div class="form-field full"><label for="playerName">Nome do jogador *</label><input id="playerName" name="name" maxlength="100" required value="${esc(player?.name || '')}" placeholder="Ex.: Gabriel Santos"></div><div class="form-field full"><label for="playerQuality">Qualidade para o sorteio *</label><select id="playerQuality" name="quality" required>${[1, 2, 3, 4, 5].map(quality => `<option value="${quality}" ${selectedQuality === quality ? 'selected' : ''}>${quality} · ${'★'.repeat(quality)}${'☆'.repeat(5 - quality)}</option>`).join('')}</select><div class="form-help">Avalie de 1 a 5 para ajudar a equilibrar os times sorteados.</div></div><div class="form-field full"><label for="playerPhoto">Foto principal <span class="optional">(opcional)</span></label><div class="photo-upload"><div class="photo-preview" id="photoPreview">${previewImage(player?.photo_path, 'Foto principal atual')}</div><div class="photo-upload-input"><input id="playerPhoto" name="photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div><div class="form-field full"><label for="reservePlayerPhoto">Foto reserva <span class="optional">(modo anti-resenha)</span></label><div class="photo-upload"><div class="photo-preview" id="reservePhotoPreview">${previewImage(player?.photo_reserve_path, 'Foto reserva atual')}</div><div class="photo-upload-input"><input id="reservePlayerPhoto" name="reserve_photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">Será exibida no modo anti-resenha. JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div></div></div><div class="modal-footer" style="display:none"></div></form>`;
+  const body = `<form id="playerForm" enctype="multipart/form-data"><div class="modal-body"><div class="form-grid"><div class="form-field full"><label for="playerName">Nome do jogador *</label><input id="playerName" name="name" maxlength="100" required value="${esc(player?.name || '')}" placeholder="Ex.: Gabriel Santos"></div><div class="form-field full"><div class="form-help">O Overall é calculado automaticamente pela carta Incomum correspondente no FutSENAI Cards.</div></div><div class="form-field full"><label for="playerPhoto">Foto principal <span class="optional">(opcional)</span></label><div class="photo-upload"><div class="photo-preview" id="photoPreview">${previewImage(player?.photo_path, 'Foto principal atual')}</div><div class="photo-upload-input"><input id="playerPhoto" name="photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div><div class="form-field full"><label for="reservePlayerPhoto">Foto reserva <span class="optional">(modo anti-resenha)</span></label><div class="photo-upload"><div class="photo-preview" id="reservePhotoPreview">${previewImage(player?.photo_reserve_path, 'Foto reserva atual')}</div><div class="photo-upload-input"><input id="reservePlayerPhoto" name="reserve_photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="form-help">Será exibida no modo anti-resenha. JPG, PNG, WEBP ou GIF · até 5 MB</div></div></div></div></div></div><div class="modal-footer" style="display:none"></div></form>`;
   const footer = `<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="playerForm" class="btn btn-primary">${editing ? 'Salvar alterações' : 'Cadastrar jogador'}</button>`;
-  modal(editing ? 'Editar jogador' : 'Novo jogador', editing ? 'Atualize o nome, a qualidade ou as fotos.' : 'Cadastre o nome, a qualidade e as fotos do jogador.', body, footer);
+  modal(editing ? 'Editar jogador' : 'Novo jogador', editing ? 'Atualize o nome ou as fotos.' : 'Cadastre o nome e as fotos do jogador.', body, footer);
   const setupPhotoPreview = (inputId, previewId, photoPath, alt) => {
     const photoInput = document.getElementById(inputId);
     photoInput?.addEventListener('change', () => {
@@ -997,30 +982,43 @@ function drawTeams() {
   const chosenPlayers = selected.map(check => {
     const player = state.players.find(item => item.id === Number(check.value))
       || state.dashboard?.players.find(item => item.id === Number(check.value));
-    if (!player) throw new Error('Não foi possível encontrar um dos jogadores selecionados.');
-    return { player, check, quality: Number(player.quality) || 3 };
+    if (!player) return { player: null, check, overall: null };
+    return { player, check, overall: playerOverall(player.name) };
   });
+  const unavailablePlayers = chosenPlayers.filter(item => !item.player || !Number.isInteger(item.overall));
+  if (unavailablePlayers.length) {
+    const names = unavailablePlayers.map(item => item.player?.name || 'jogador selecionado').join(', ');
+    toast(`Não foi possível calcular o Overall da carta Incomum para: ${names}. Confira se esses jogadores têm cards no FutSENAI Cards e tente novamente.`, 'error');
+    return;
+  }
   const counts = { A: Math.ceil(chosenPlayers.length / 2), B: Math.floor(chosenPlayers.length / 2) };
   const isJonas = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR') === 'jonas';
   const jonas = chosenPlayers.find(item => isJonas(item.player.name));
   const jonasMustBeShorter = chosenPlayers.length % 2 === 1 && jonas;
   const movablePlayers = chosenPlayers.filter(item => item !== jonas || !jonasMustBeShorter);
-  const candidateBuckets = [0, 1, 2].map(() => ({ count: 0, teams: null }));
-  const isValidDifference = difference => difference >= 0 && difference <= 2;
-  const getDifference = (qualityA, qualityB) => counts.A === counts.B
-    ? Math.abs(qualityA - qualityB)
-    : qualityB - qualityA;
+  const candidateBuckets = Array.from(
+    { length: MAX_DRAW_OVERALL_AVERAGE_GAP_TENTHS + 1 },
+    () => ({ count: 0, teams: null })
+  );
+  const getDifference = (overallA, overallB) => {
+    const averageA = overallA / counts.A;
+    const averageB = overallB / counts.B;
+    const gap = counts.A === counts.B ? Math.abs(averageA - averageB) : averageB - averageA;
+    if (gap < 0) return -Math.max(1, Math.round(-gap * 10));
+    return Math.round(gap * 10);
+  };
+  const isValidDifference = difference => difference >= 0 && difference <= MAX_DRAW_OVERALL_AVERAGE_GAP_TENTHS;
   const considerTeams = (playersA, playersB) => {
-    const qualityA = playersA.reduce((sum, item) => sum + item.quality, 0);
-    const qualityB = playersB.reduce((sum, item) => sum + item.quality, 0);
-    const difference = getDifference(qualityA, qualityB);
+    const overallA = playersA.reduce((sum, item) => sum + item.overall, 0);
+    const overallB = playersB.reduce((sum, item) => sum + item.overall, 0);
+    const difference = getDifference(overallA, overallB);
     if (!Number.isInteger(difference) || !isValidDifference(difference)) return;
     const bucket = candidateBuckets[difference];
     bucket.count++;
     if (Math.random() < 1 / bucket.count) {
       bucket.teams = {
-        A: { side: 'A', name: 'Time Vermelho', players: [...playersA], quality: qualityA },
-        B: { side: 'B', name: 'Time Branco', players: [...playersB], quality: qualityB }
+        A: { side: 'A', name: 'Time Vermelho', players: [...playersA], overall: overallA },
+        B: { side: 'B', name: 'Time Branco', players: [...playersB], overall: overallB }
       };
     }
   };
@@ -1048,34 +1046,36 @@ function drawTeams() {
     };
     selectTeams(0);
   } else {
-    const getDistanceFromRange = difference => difference < 0 ? -difference : Math.max(0, difference - 2);
+    const getDistanceFromRange = difference => difference < 0
+      ? -difference
+      : Math.max(0, difference - MAX_DRAW_OVERALL_AVERAGE_GAP_TENTHS);
     for (let attempt = 0; attempt < 3000; attempt++) {
       const teams = {
-        A: { side: 'A', name: 'Time Vermelho', players: [], quality: 0 },
-        B: { side: 'B', name: 'Time Branco', players: [], quality: 0 }
+        A: { side: 'A', name: 'Time Vermelho', players: [], overall: 0 },
+        B: { side: 'B', name: 'Time Branco', players: [], overall: 0 }
       };
       if (jonasMustBeShorter) {
         teams.B.players.push(jonas);
-        teams.B.quality += jonas.quality;
+        teams.B.overall += jonas.overall;
       }
       const shuffled = [...movablePlayers];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const randomIndex = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[i]];
       }
-      shuffled.sort((left, right) => right.quality - left.quality);
+      shuffled.sort((left, right) => right.overall - left.overall);
       for (const item of shuffled) {
         const available = ['A', 'B'].filter(side => teams[side].players.length < counts[side]);
         const target = available.length === 1
           ? available[0]
-          : teams.A.quality === teams.B.quality
+          : teams.A.overall === teams.B.overall
             ? (Math.random() < 0.5 ? 'A' : 'B')
-            : teams.A.quality < teams.B.quality ? 'A' : 'B';
+            : teams.A.overall < teams.B.overall ? 'A' : 'B';
         teams[target].players.push(item);
-        teams[target].quality += item.quality;
+        teams[target].overall += item.overall;
       }
 
-      let currentDifference = getDifference(teams.A.quality, teams.B.quality);
+      let currentDifference = getDifference(teams.A.overall, teams.B.overall);
       let currentDistance = getDistanceFromRange(currentDifference);
       let improved = true;
       while (improved && currentDistance > 0) {
@@ -1085,22 +1085,22 @@ function drawTeams() {
         for (const red of teams.A.players) {
           for (const white of teams.B.players) {
             if (jonasMustBeShorter && white === jonas) continue;
-            const qualityA = teams.A.quality - red.quality + white.quality;
-            const qualityB = teams.B.quality - white.quality + red.quality;
-            const distance = getDistanceFromRange(getDifference(qualityA, qualityB));
+            const overallA = teams.A.overall - red.overall + white.overall;
+            const overallB = teams.B.overall - white.overall + red.overall;
+            const distance = getDistanceFromRange(getDifference(overallA, overallB));
             if (distance < bestDistance) {
               bestDistance = distance;
-              bestSwap = [red, white, qualityA, qualityB];
+              bestSwap = [red, white, overallA, overallB];
             }
           }
         }
         if (bestSwap) {
-          const [red, white, qualityA, qualityB] = bestSwap;
+          const [red, white, overallA, overallB] = bestSwap;
           teams.A.players[teams.A.players.indexOf(red)] = white;
           teams.B.players[teams.B.players.indexOf(white)] = red;
-          teams.A.quality = qualityA;
-          teams.B.quality = qualityB;
-          currentDifference = getDifference(qualityA, qualityB);
+          teams.A.overall = overallA;
+          teams.B.overall = overallB;
+          currentDifference = getDifference(overallA, overallB);
           currentDistance = bestDistance;
           improved = true;
         }
@@ -1111,7 +1111,7 @@ function drawTeams() {
 
   const availableBuckets = candidateBuckets.filter(bucket => bucket.teams);
   if (!availableBuckets.length) {
-    toast('Não há uma divisão possível com diferença de qualidade entre 0 e 2 sem deixar o time menor em desvantagem. Ajuste as qualidades dos jogadores e tente novamente.', 'warning');
+    toast('Não há uma divisão possível com diferença de Overall médio entre 0 e 6,1 sem deixar a média do time menor abaixo da do time maior.', 'warning');
     return;
   }
   const selectedBucket = availableBuckets[Math.floor(Math.random() * availableBuckets.length)];
@@ -1145,7 +1145,7 @@ function drawTeams() {
       { symbol: '♠', name: 'espadas', color: 'black' }
     ];
     const cards = team.players.map(entry => {
-      const { player, quality } = entry;
+      const { player, overall } = entry;
       const index = cardIndexByPlayer.get(entry);
       const dealX = team.side === 'A' ? '82px' : '-82px';
       const teamLabel = team.side === 'A' ? 'TIME VERMELHO' : 'TIME BRANCO';
@@ -1153,9 +1153,11 @@ function drawTeams() {
       const suit = cardSuits[Math.floor(Math.random() * cardSuits.length)];
       const corner = `draw-playing-card-corner draw-suit-${team.side === 'A' ? 'red' : 'blue'}`;
       const cornerMarkup = className => `<span class="${className}" aria-hidden="true"><b>${rank}</b><i>${suit.symbol}</i></span>`;
-      return `<div class="draw-player-card" data-card-index="${index}" style="--deal-x:${dealX}" aria-label="Carta ainda não revelada, ${esc(team.name)}"><div class="draw-player-card-inner"><div class="draw-card-face draw-card-back"><span class="draw-card-back-emblem">⚽︎</span><small>${teamLabel}</small></div><div class="draw-card-face draw-card-front" aria-hidden="true">${cornerMarkup(corner)}<span class="draw-card-team-label"><i></i>${teamLabel}</span><div class="draw-card-player-row">${avatar(player, 'small')}<span class="draw-card-player-copy"><strong>${esc(player.name)}</strong><small>★ ${quality} · qualidade</small></span></div>${cornerMarkup(`${corner} draw-playing-card-corner-bottom`)}</div></div></div>`;
+      return `<div class="draw-player-card" data-card-index="${index}" style="--deal-x:${dealX}" aria-label="Carta ainda não revelada, ${esc(team.name)}"><div class="draw-player-card-inner"><div class="draw-card-face draw-card-back"><span class="draw-card-back-emblem">⚽︎</span><small>${teamLabel}</small></div><div class="draw-card-face draw-card-front" aria-hidden="true">${cornerMarkup(corner)}<span class="draw-card-team-label"><i></i>${teamLabel}</span><div class="draw-card-player-row">${avatar(player, 'small')}<span class="draw-card-player-copy"><strong>${esc(player.name)}</strong><small class="draw-player-overall">Over ${overall}</small></span></div>${cornerMarkup(`${corner} draw-playing-card-corner-bottom`)}</div></div></div>`;
     }).join('');
-    return `<section class="draw-team draw-team-${team.side.toLowerCase()}"><div class="draw-team-heading"><div><span>${team.name}</span><strong>${team.players.length} ${team.players.length === 1 ? 'jogador' : 'jogadores'} · qualidade ${team.quality}</strong></div><span class="draw-team-ball">⚽︎</span></div><div class="draw-team-cards">${cards}</div></section>`;
+    const averageOverall = team.overall / team.players.length;
+    const formattedAverage = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(averageOverall);
+    return `<section class="draw-team draw-team-${team.side.toLowerCase()}"><div class="draw-team-heading"><div><span>${team.name}</span><strong>${team.players.length} ${team.players.length === 1 ? 'jogador' : 'jogadores'} · Overall médio ${formattedAverage}</strong></div><span class="draw-team-ball">⚽︎</span></div><div class="draw-team-cards">${cards}</div></section>`;
   }).join('');
   results.hidden = false;
   results.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1244,7 +1246,7 @@ function openMatchModal(testOnly = false) {
   const matchSetup = testOnly ? '' : `<div class="section-caption">01 · Tipo e data da partida</div><div class="form-grid"><div class="form-field full"><label for="opponentType">Tipo de partida *</label><select id="opponentType" name="opponent_type"><option value="classmates" ${defaultType === 'classmates' ? 'selected' : ''} ${players.length < 2 ? 'disabled' : ''}>Entre nós · somente 3º A</option><option value="second_year" ${defaultType === 'second_year' ? 'selected' : ''}>Interclasse · contra o 2º Ano (azul)</option></select><div class="form-help">No interclasse, o 2º Ano não precisa ser cadastrado: você registra apenas o total de gols deles.</div></div><div class="form-field full"><label for="matchDate">Data da partida *</label><input id="matchDate" name="played_on" type="date" required max="${todayIso()}" value="${todayIso()}"></div></div>`;
   const modeNotice = testOnly ? '<div class="draw-test-notice" role="status"><strong>Modo de teste</strong><span>O sorteio é apenas uma prévia: nenhuma partida será criada ou salva.</span></div>' : '';
   const caption = testOnly ? 'Selecione jogadores para testar o sorteio' : '02 · Monte as escalações';
-  const helper = testOnly ? 'A prévia usa os jogadores ativos e as qualidades cadastradas. Fechar esta janela descarta o resultado.' : 'Cada partida tem uma escalação independente. Nas partidas entre nós, os times podem ficar desbalanceados. Contra o 2º Ano, escolha todos os jogadores do 3º A que participaram.';
+  const helper = testOnly ? 'A prévia usa o Overall da carta Incomum de cada jogador. Fechar esta janela descarta o resultado.' : 'Cada partida tem uma escalação independente. Nas partidas entre nós, os times podem ficar desbalanceados. Contra o 2º Ano, escolha todos os jogadores do 3º A que participaram.';
   const body = `<${formWrapper} id="matchForm" class="${testOnly ? 'team-draw-test-mode' : ''}"><div class="modal-body">${modeNotice}${matchSetup}<div class="section-caption" id="teamsCaption">${caption}</div><div class="participant-toolbar"><span id="selectedCount">0 selecionados</span><div class="participant-tools"><button type="button" data-action="select-all-players">Selecionar todos</button><button type="button" data-action="clear-players">Limpar</button><button type="button" class="draw-teams-button" data-action="draw-teams">⚄ Sortear times</button></div></div><div class="participant-list">${playerRows}</div><div class="team-draw-results" id="teamDrawResults" aria-live="polite" hidden></div><div class="team-counts" id="teamCounts"><span><i class="legend-dot" style="background:var(--red)"></i><strong id="teamACount">0 jogadores</strong> no Time Vermelho</span><span><i class="legend-dot" style="background:#60636f"></i><strong id="teamBCount">0 jogadores</strong> no Time Branco</span></div><p class="form-help" style="margin-top:10px">${helper}</p></div></${formWrapper}>`;
   const footer = testOnly ? '<button type="button" class="btn btn-secondary" data-modal-close>Fechar teste</button>' : `<button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" form="matchForm" class="btn btn-primary">Criar partida →</button>`;
   modal(testOnly ? 'Testar sorteio de times' : 'Registrar partida', testOnly ? 'Escolha jogadores ativos e veja uma prévia do sorteio.' : 'Escolha o tipo de confronto, a data e os jogadores do 3º A.', body, footer, true);
@@ -1317,6 +1319,7 @@ async function submitMatchForm(form) {
     const result = await api('/api/matches', jsonOptions('POST', payload));
     toast(result.message || 'Partida criada.');
     closeModal();
+    state.previousView = state.view;
     state.selectedMatch = result.data.id;
     state.view = 'matchDetail';
     updateChrome();
@@ -1386,7 +1389,9 @@ async function deleteAssist(matchId, playerId) {
 
 // Delegated click actions keep the interface simple as each view is redrawn.
 document.addEventListener('click', async event => {
-  if (event.target.closest('.brand, .mobile-brand')) {
+  const brand = event.target.closest('.brand, .mobile-brand');
+  if (brand) {
+    event.preventDefault();
     brandClickCount++;
     if (brandClickTimer !== null) window.clearTimeout(brandClickTimer);
     brandClickTimer = window.setTimeout(() => { brandClickCount = 0; brandClickTimer = null; }, 1600);
@@ -1402,6 +1407,8 @@ document.addEventListener('click', async event => {
       await renderCurrent();
       return;
     }
+    if (state.view !== 'dashboard') await navigate('dashboard');
+    return;
   }
   const sidebar = document.getElementById('sidebar');
   if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !event.target.closest('#mobileMenu')) {
@@ -1426,6 +1433,11 @@ document.addEventListener('click', async event => {
     if (image) openPlayerImagePreview(image, image.alt);
     return;
   }
+  const breadcrumbButton = event.target.closest('[data-crumb-view]');
+  if (breadcrumbButton && breadcrumbButton.dataset.crumbView) {
+    await navigate(breadcrumbButton.dataset.crumbView);
+    return;
+  }
   const navButton = event.target.closest('[data-view]');
   if (navButton) { await navigate(navButton.dataset.view); return; }
   const closeButton = event.target.closest('[data-modal-close]');
@@ -1435,7 +1447,7 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.action;
   if (!canEdit() && readOnlyActions.has(action)) {
-    toast(state.readOnly ? 'Esta cópia está em modo somente leitura.' : 'Entre no modo ADM para fazer alterações.', 'error');
+    toast('Edição disponível somente no servidor local em http://localhost:3000.', 'error');
     return;
   }
   const id = Number(button.dataset.id);
@@ -1456,7 +1468,7 @@ document.addEventListener('click', async event => {
       openMatchModal(!canEdit());
     }
     else if (action === 'new-goal') openGoalModal();
-    else if (action === 'open-match') { state.selectedMatch = id; state.view = 'matchDetail'; updateChrome(); await renderMatchDetail(); }
+    else if (action === 'open-match') { state.previousView = state.view; state.matchDetail = null; state.selectedMatch = id; state.view = 'matchDetail'; updateChrome(); await renderMatchDetail(); }
     else if (action === 'delete-match') await deleteMatch(id);
     else if (action === 'delete-goal') await deleteGoal(Number(button.dataset.matchId), id);
     else if (action === 'delete-assist') await deleteAssist(Number(button.dataset.matchId), id);
@@ -1465,6 +1477,7 @@ document.addEventListener('click', async event => {
     else if (action === 'go-stats') await navigate('stats');
     else if (action === 'open-player-profile') {
       state.playerDetailReturnView = state.view === 'matchDetail' || state.view === 'playerDetail' ? 'matches' : state.view;
+      state.previousView = state.view;
       state.selectedPlayerId = id;
       state.playerProfile = null;
       state.view = 'playerDetail';
@@ -1494,18 +1507,26 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     const image = event.target.closest('[data-player-image]').querySelector('img');
     if (image) openPlayerImagePreview(image, image.alt);
+    return;
+  }
+  const clickableRow = event.target.closest?.([
+    '.player-card[data-action="open-player-profile"]',
+    '.scorer-row[data-action="open-player-profile"]',
+    '.stats-table tr[data-action="open-player-profile"]',
+    '.match-row[data-action="open-match"]',
+    '.match-card[data-action="open-match"]'
+  ].join(','));
+  if (clickableRow && event.target === clickableRow && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    clickableRow.click();
   }
 });
 
 document.addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target;
-  if (form.id === 'adminLoginForm') {
-    await submitAdminLogin(form);
-    return;
-  }
   if (!canEdit()) {
-    toast(state.readOnly ? 'Esta cópia está em modo somente leitura.' : 'Entre no modo ADM para fazer alterações.', 'error');
+    toast('Edição disponível somente no servidor local em http://localhost:3000.', 'error');
     return;
   }
   if (form.id === 'playerForm') await submitPlayerForm(form);
@@ -1520,13 +1541,6 @@ document.addEventListener('change', async event => {
   if (event.target.id === 'playerStatus') { state.playerStatus = event.target.value; await renderPlayers(); }
   if (event.target.id === 'statsScope') { state.statsScope = event.target.value; await renderCurrent(); }
 });
-document.getElementById('adminModeButton').addEventListener('click', async () => {
-  try {
-    await toggleAdminMode();
-  } catch (error) {
-    toast(error.message, 'error');
-  }
-});
 document.getElementById('mobileMenu').addEventListener('click', () => {
   setSidebarOpen(!document.getElementById('sidebar').classList.contains('open'));
 });
@@ -1539,23 +1553,10 @@ void loadLatestJournalNews();
   updateChrome();
   try {
     await api('/api/health');
-    state.serverAvailable = !state.readOnly;
-    let authStatusError = false;
-    if (state.serverAvailable) {
-      try {
-        const auth = await api('/api/auth/status');
-        state.authConfigured = Boolean(auth.configured);
-        state.isAdmin = Boolean(auth.authenticated);
-      } catch (error) {
-        console.error('Não foi possível verificar a sessão ADM.', error);
-        authStatusError = true;
-        state.authConfigured = false;
-        state.isAdmin = false;
-      }
-    }
+    state.serverAvailable = true;
+    state.localServer = isLocalServerOrigin();
     updateChrome();
     await renderDashboard();
-    if (authStatusError) toast('Não foi possível verificar a sessão ADM. O site permanecerá em modo de visualização.', 'warning');
   } catch (error) {
     pageContent.innerHTML = `<div class="empty-state"><div class="empty-symbol">!</div><h3>Não foi possível carregar o FutSENAI</h3><p>Verifique se o servidor está iniciado ou se o arquivo de dados foi publicado em <strong>public/data/futsenai.json</strong>.</p><p style="font-size:10px">Detalhe: ${esc(error.message)}</p><button class="btn btn-primary" data-action="retry">Tentar novamente</button></div>`;
   }
