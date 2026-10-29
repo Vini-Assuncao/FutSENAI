@@ -3,7 +3,17 @@ const express = require('express');
 const dataStore = require('../data-store');
 const Stats = require('../stats');
 const { httpError, requiredText, validId } = require('../http');
-const { playerPhotos, removeUpload, uploadedPlayerPhotos } = require('../uploads');
+const {
+  playerPhotos,
+  photoPath,
+  stagePlayerPhoto,
+  stageExistingPhoto,
+  commitStagedPhoto,
+  rollbackStagedPhoto,
+  finalizeStagedPhoto,
+  cleanupStagedPhoto,
+  removeUpload
+} = require('../uploads');
 
 const router = express.Router();
 
@@ -13,7 +23,7 @@ function playerStatsById(id) {
   return player ? Stats.playerStats(player, 'internal', data) : null;
 }
 
-function parsePlayerBody(body, existingPhoto = null, existingReservePhoto = null, uploadedPhoto = null, uploadedReservePhoto = null, existingQuality = 3) {
+function parsePlayerBody(body, existingPhoto = null, existingReservePhoto = null, photo = null, reservePhoto = null, existingQuality = 3) {
   const name = requiredText(body.name, 'nome', 100);
   const quality = Number(body.quality ?? existingQuality);
   if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
@@ -22,9 +32,32 @@ function parsePlayerBody(body, existingPhoto = null, existingReservePhoto = null
   return {
     name,
     quality,
-    photoPath: uploadedPhoto ? `/uploads/${uploadedPhoto.filename}` : existingPhoto,
-    reservePhotoPath: uploadedReservePhoto ? `/uploads/${uploadedReservePhoto.filename}` : existingReservePhoto
+    photoPath: photo || existingPhoto,
+    reservePhotoPath: reservePhoto || existingReservePhoto
   };
+}
+
+function stagePhoto(file, existingPath, name, role, playerId, players, stagedPhotos) {
+  const staged = file
+    ? stagePlayerPhoto(file, name, role, playerId, players)
+    : existingPath
+      ? stageExistingPhoto(existingPath, name, role, playerId, players)
+      : null;
+  if (staged) stagedPhotos.push(staged);
+  return photoPath(staged, existingPath);
+}
+
+function rollbackPhotos(committedPhotos, stagedPhotos, originalError) {
+  const rollbackErrors = [];
+  for (const committed of committedPhotos.reverse()) {
+    try { rollbackStagedPhoto(committed); } catch (error) { rollbackErrors.push(error); }
+  }
+  for (const staged of stagedPhotos) {
+    try { cleanupStagedPhoto(staged); } catch (error) { rollbackErrors.push(error); }
+  }
+  return rollbackErrors.length
+    ? new AggregateError([originalError, ...rollbackErrors], 'A operação falhou e não foi possível restaurar todas as fotos.')
+    : originalError;
 }
 
 router.get('/', (req, res, next) => {
@@ -44,9 +77,18 @@ router.get('/:id/history', (req, res, next) => {
 });
 
 router.post('/', playerPhotos, (req, res, next) => {
+  const stagedPhotos = [];
+  const committedPhotos = [];
+  let dataSaved = false;
   try {
     const files = req.files;
-    const player = parsePlayerBody(req.body, null, null, files?.photo?.[0], files?.reserve_photo?.[0]);
+    const playerId = dataStore.getData().nextIds.players;
+    const players = dataStore.getData().players;
+    const name = requiredText(req.body.name, 'nome', 100);
+    const stagedPhotoPath = stagePhoto(files?.photo?.[0], null, name, 'photo', playerId, players, stagedPhotos);
+    const stagedReservePhotoPath = stagePhoto(files?.reserve_photo?.[0], null, name, 'reserve_photo', playerId, players, stagedPhotos);
+    const player = parsePlayerBody(req.body, null, null, stagedPhotoPath, stagedReservePhotoPath);
+    for (const staged of stagedPhotos) committedPhotos.push(commitStagedPhoto(staged));
     const id = dataStore.transaction(data => {
       const id = data.nextIds.players++;
       data.players.push({
@@ -59,14 +101,18 @@ router.post('/', playerPhotos, (req, res, next) => {
       });
       return id;
     });
+    dataSaved = true;
+    for (const committed of committedPhotos) finalizeStagedPhoto(committed);
     res.status(201).json({ message: 'Jogador cadastrado com sucesso.', data: playerStatsById(id) });
   } catch (error) {
-    for (const file of uploadedPlayerPhotos(req.files)) removeUpload(`/uploads/${file.filename}`);
-    next(error);
+    next(dataSaved ? error : rollbackPhotos(committedPhotos, stagedPhotos, error));
   }
 });
 
 router.put('/:id', playerPhotos, (req, res, next) => {
+  const stagedPhotos = [];
+  const committedPhotos = [];
+  let dataSaved = false;
   try {
     const id = validId(req.params.id);
     const existing = dataStore.getData().players.find(item => item.id === id);
@@ -74,7 +120,12 @@ router.put('/:id', playerPhotos, (req, res, next) => {
     const files = req.files;
     const uploadedPhoto = files?.photo?.[0];
     const uploadedReservePhoto = files?.reserve_photo?.[0];
-    const player = parsePlayerBody(req.body, existing.photo_path, existing.photo_reserve_path, uploadedPhoto, uploadedReservePhoto, existing.quality);
+    const players = dataStore.getData().players;
+    const name = requiredText(req.body.name, 'nome', 100);
+    const stagedPhotoPath = stagePhoto(uploadedPhoto, existing.photo_path, name, 'photo', id, players, stagedPhotos);
+    const stagedReservePhotoPath = stagePhoto(uploadedReservePhoto, existing.photo_reserve_path, name, 'reserve_photo', id, players, stagedPhotos);
+    const player = parsePlayerBody(req.body, existing.photo_path, existing.photo_reserve_path, stagedPhotoPath, stagedReservePhotoPath, existing.quality);
+    for (const staged of stagedPhotos) committedPhotos.push(commitStagedPhoto(staged));
     dataStore.transaction(data => {
       const current = data.players.find(item => item.id === id);
       current.name = player.name;
@@ -82,13 +133,14 @@ router.put('/:id', playerPhotos, (req, res, next) => {
       current.photo_reserve_path = player.reservePhotoPath;
       current.quality = player.quality;
     });
+    dataSaved = true;
+    for (const committed of committedPhotos) finalizeStagedPhoto(committed);
     for (const oldPhoto of new Set([existing.photo_path, existing.photo_reserve_path])) {
       if (oldPhoto && oldPhoto !== player.photoPath && oldPhoto !== player.reservePhotoPath) removeUpload(oldPhoto);
     }
     res.json({ message: 'Jogador atualizado com sucesso.', data: playerStatsById(id) });
   } catch (error) {
-    for (const file of uploadedPlayerPhotos(req.files)) removeUpload(`/uploads/${file.filename}`);
-    next(error);
+    next(dataSaved ? error : rollbackPhotos(committedPhotos, stagedPhotos, error));
   }
 });
 

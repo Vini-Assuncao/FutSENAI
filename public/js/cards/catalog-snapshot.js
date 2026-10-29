@@ -10,29 +10,15 @@ export const SNAPSHOT = {
         "club": "Aurora Futsal",
         "image": "pietroguedes.jpg",
         "attributes": {
-          "pace": 85,
-          "shooting": 92,
-          "passing": 75,
-          "dribbling": 75,
-          "defending": 65,
-          "physical": 90
-        }
-      },
-      {
-        "name": "Mateus Lopes",
-        "position": "Pivo",
-        "nationality": "Brasil",
-        "age": 19,
-        "club": "Estrela Futsal",
-        "image": "matheuslopes.jpg",
-        "attributes": {
-          "pace": 40,
-          "shooting": 76,
-          "passing": 70,
-          "dribbling": 83,
-          "defending": 65,
-          "physical": 73
-        }
+          "pace": 81,
+          "shooting": 88,
+          "passing": 83,
+          "dribbling": 78,
+          "defending": 73,
+          "physical": 87
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 86
       },
       {
         "name": "Muzy",
@@ -42,13 +28,33 @@ export const SNAPSHOT = {
         "club": "Fênix Futsal",
         "image": "gustavohyppolito.jpg",
         "attributes": {
-          "pace": 70,
-          "shooting": 78,
-          "passing": 75,
-          "dribbling": 75,
-          "defending": 68,
+          "pace": 78,
+          "shooting": 76,
+          "passing": 69,
+          "dribbling": 66,
+          "defending": 67,
           "physical": 80
-        }
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 75
+      },
+      {
+        "name": "Mateus Lopes",
+        "position": "Pivo",
+        "nationality": "Brasil",
+        "age": 19,
+        "club": "Estrela Futsal",
+        "image": "matheuslopes.jpg",
+        "attributes": {
+          "pace": 41,
+          "shooting": 61,
+          "passing": 63,
+          "dribbling": 61,
+          "defending": 50,
+          "physical": 55
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 57
       },
       {
         "name": "Thiago Tavares",
@@ -58,29 +64,15 @@ export const SNAPSHOT = {
         "club": "Leões Futsal",
         "image": "thiagotavares.jpg",
         "attributes": {
-          "pace": 84,
-          "shooting": 84,
+          "pace": 83,
+          "shooting": 82,
           "passing": 85,
-          "dribbling": 94,
-          "defending": 70,
-          "physical": 80
-        }
-      },
-      {
-        "name": "Rafael Dutra",
-        "position": "Ala",
-        "nationality": "Brasil",
-        "age": 21,
-        "club": "Tigres Futsal",
-        "image": "rafaeldutra.jpg",
-        "attributes": {
-          "pace": 73,
-          "shooting": 90,
-          "passing": 84,
-          "dribbling": 70,
-          "defending": 70,
-          "physical": 94
-        }
+          "dribbling": 92,
+          "defending": 76,
+          "physical": 81
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 86
       },
       {
         "name": "João Marcos",
@@ -90,29 +82,33 @@ export const SNAPSHOT = {
         "club": "Leões Futsal",
         "image": "joaomarcos.jpg",
         "attributes": {
-          "pace": 85,
-          "shooting": 78,
-          "passing": 80,
+          "pace": 88,
+          "shooting": 77,
+          "passing": 75,
           "dribbling": 85,
-          "defending": 60,
-          "physical": 60
-        }
+          "defending": 70,
+          "physical": 67
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 81
       },
       {
-        "name": "Enzo Thomas",
+        "name": "Rafael Dutra",
         "position": "Ala",
         "nationality": "Brasil",
-        "age": 19,
-        "club": "Aurora Futsal",
-        "image": "enzothomas.jpg",
+        "age": 21,
+        "club": "Tigres Futsal",
+        "image": "rafaeldutra.jpg",
         "attributes": {
-          "pace": 82,
-          "shooting": 78,
-          "passing": 75,
-          "dribbling": 90,
-          "defending": 55,
-          "physical": 60
-        }
+          "pace": 70,
+          "shooting": 83,
+          "passing": 77,
+          "dribbling": 66,
+          "defending": 74,
+          "physical": 92
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 76
       },
       {
         "name": "Vinícius Assunção",
@@ -122,13 +118,33 @@ export const SNAPSHOT = {
         "club": "Aurora Futsal",
         "image": "viniciusassuncao.jpg",
         "attributes": {
-          "pace": 94,
-          "shooting": 72,
-          "passing": 76,
-          "dribbling": 65,
-          "defending": 68,
-          "physical": 60
-        }
+          "pace": 91,
+          "shooting": 71,
+          "passing": 73,
+          "dribbling": 68,
+          "defending": 66,
+          "physical": 66
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 76
+      },
+      {
+        "name": "Enzo Thomas",
+        "position": "Ala",
+        "nationality": "Brasil",
+        "age": 19,
+        "club": "Aurora Futsal",
+        "image": "enzothomas.jpg",
+        "attributes": {
+          "pace": 79,
+          "shooting": 67,
+          "passing": 70,
+          "dribbling": 84,
+          "defending": 58,
+          "physical": 65
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 74
       },
       {
         "name": "Heitor Barbosa",
@@ -138,34 +154,15 @@ export const SNAPSHOT = {
         "club": "Tigres Futsal",
         "image": "heitorbarbosa.jpg",
         "attributes": {
-          "pace": 70,
-          "shooting": 75,
-          "passing": 80,
-          "dribbling": 65,
-          "defending": 85,
-          "physical": 65
-        }
-      },
-      {
-        "name": "Jonas Daniel",
-        "position": "GK",
-        "nationality": "Brasil",
-        "age": 18,
-        "club": "Aurora Futsal",
-        "image": "jonasdanieldebritolopes.jpg",
-        "attributes": {
-          "pace": 40,
-          "shooting": 60,
-          "passing": 60,
-          "dribbling": 60,
-          "defending": 65,
-          "physical": 72
+          "pace": 75,
+          "shooting": 73,
+          "passing": 78,
+          "dribbling": 67,
+          "defending": 89,
+          "physical": 77
         },
-        "gkAttributes": {
-          "reflexes": 75,
-          "positioning": 90,
-          "handling": 75
-        }
+        "baseRarity": "uncommon",
+        "baseOverall": 82
       },
       {
         "name": "Gabriel Ortelan",
@@ -175,13 +172,138 @@ export const SNAPSHOT = {
         "club": "Estrela Futsal",
         "image": "gabrielortelan.jpg",
         "attributes": {
+          "pace": 58,
+          "shooting": 45,
+          "passing": 60,
+          "dribbling": 52,
+          "defending": 80,
+          "physical": 80
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 70
+      },
+      {
+        "name": "Jonas Daniel",
+        "position": "GK",
+        "nationality": "Brasil",
+        "age": 18,
+        "club": "Aurora Futsal",
+        "image": "jonasdanieldebritolopes.jpg",
+        "attributes": {
           "pace": 45,
-          "shooting": 30,
-          "passing": 55,
-          "dribbling": 45,
-          "defending": 90,
+          "shooting": 42,
+          "passing": 57,
+          "dribbling": 40,
+          "defending": 70,
           "physical": 75
-        }
+        },
+        "gkAttributes": {
+          "reflexes": 74,
+          "positioning": 64,
+          "handling": 72
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 68
+      },
+      {
+        "name": "Rafinha",
+        "position": "GK",
+        "nationality": "Brasil",
+        "age": 22,
+        "club": "Aurora Futsal",
+        "image": "rafaelteixeira.png",
+        "attributes": {
+          "pace": 60,
+          "shooting": 30,
+          "passing": 70,
+          "dribbling": 40,
+          "defending": 86,
+          "physical": 62
+        },
+        "gkAttributes": {
+          "reflexes": 82,
+          "positioning": 90,
+          "handling": 80
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 73
+      },
+      {
+        "name": "Monteiro",
+        "position": "Pivo",
+        "nationality": "Brasil",
+        "age": 20,
+        "club": "Fênix Futsal",
+        "image": "viniciusmonteiro.png",
+        "attributes": {
+          "pace": 55,
+          "shooting": 30,
+          "passing": 50,
+          "dribbling": 20,
+          "defending": 60,
+          "physical": 40
+        },
+        "baseRarity": "uncommon",
+        "baseOverall": 68
+      },
+      {
+        "name": "Eduardo",
+        "position": "Ala",
+        "nationality": "Brasil",
+        "age": 21,
+        "club": "Aurora Futsal",
+        "image": "eduardo.png",
+        "attributes": {
+          "pace": 80,
+          "shooting": 80,
+          "passing": 70,
+          "dribbling": 70,
+          "defending": 60,
+          "physical": 85
+        },
+        "baseRarity": "common",
+        "baseOverall": 77
+      },
+      {
+        "name": "Enzo Antonio",
+        "position": "GK",
+        "nationality": "Brasil",
+        "age": 20,
+        "club": "Aurora Futsal",
+        "image": "enzoantonio.png",
+        "attributes": {
+          "pace": 60,
+          "shooting": 30,
+          "passing": 70,
+          "dribbling": 40,
+          "defending": 70,
+          "physical": 70
+        },
+        "gkAttributes": {
+          "reflexes": 78,
+          "positioning": 80,
+          "handling": 75
+        },
+        "baseRarity": "common",
+        "baseOverall": 73
+      },
+      {
+        "name": "Ricardo",
+        "position": "Pivo",
+        "nationality": "Brasil",
+        "age": 22,
+        "club": "Fênix Futsal",
+        "image": "ricardo.png",
+        "attributes": {
+          "pace": 80,
+          "shooting": 85,
+          "passing": 78,
+          "dribbling": 78,
+          "defending": 80,
+          "physical": 88
+        },
+        "baseRarity": "common",
+        "baseOverall": 77
       }
     ],
     "modifiers": {
@@ -191,6 +313,14 @@ export const SNAPSHOT = {
       "epic": 1.1,
       "legendary": 1.15,
       "icon": 1.2
+    },
+    "rarityOverallBonuses": {
+      "common": -2,
+      "uncommon": 0,
+      "rare": 2,
+      "epic": 4,
+      "legendary": 6,
+      "icon": 8
     },
     "specialBonuses": {
       "none": 0,
@@ -239,5 +369,5 @@ export const SNAPSHOT = {
       }
     },
     "season": "2025/26",
-    "fingerprint": "133swgw"
+    "fingerprint": "1agzzxl"
   };

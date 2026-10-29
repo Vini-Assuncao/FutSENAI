@@ -959,6 +959,8 @@ noscript .noscript-msg{display:block;margin:40px auto;max-width:420px;padding:20
     .fsc-empty{margin:4px 20px 22px;padding:22px 16px;text-align:center;border:1px dashed #dedee5;border-radius:13px;background:#fcfcfd;color:#858894;font-size:12px;line-height:1.6}
     .fsc-empty strong{display:block;margin-bottom:4px;color:#40424d;font-size:13px}
 
+    .fsc-card-link{display:block;width:100%;max-width:204px;border-radius:18px;color:inherit;text-decoration:none}
+    .fsc-card-link:focus-visible{outline:3px solid #E30613;outline-offset:4px}
     .fsc-card{--u:1px;position:relative;box-sizing:border-box;width:100%;max-width:204px;aspect-ratio:3/4;overflow:hidden;border:2px solid var(--r);border-radius:16px;background:#252733;box-shadow:0 8px 24px rgba(37,39,51,.15);color:#fff;font-family:'Poppins',system-ui,-apple-system,sans-serif;user-select:none;transition:transform .2s ease;container-type:inline-size}
     @supports (width:1cqw){.fsc-card{--u:calc(100cqw / 188)}}
     .fsc-card:hover{transform:translateY(-4px)}
@@ -977,8 +979,14 @@ noscript .noscript-msg{display:block;margin:40px auto;max-width:420px;padding:20
     .fsc-attr{display:flex;flex-direction:column;align-items:center;padding:calc(var(--u)*2);border-radius:calc(var(--u)*4);background:rgba(0,0,0,.5);font-size:calc(var(--u)*11)}
     .fsc-attr span{color:rgba(255,255,255,.7);line-height:1}
     .fsc-attr b{margin-top:calc(var(--u)*2);color:#fff;font-weight:700;line-height:1}
+    @keyframes fsc-rgb-border{0%,100%{border-color:#ff0040}25%{border-color:#ff8c00}50%{border-color:#00c8ff}75%{border-color:#a855f7}}
+    @keyframes fsc-rgb-background{0%,100%{background-color:rgba(255,0,64,.45)}25%{background-color:rgba(255,140,0,.45)}50%{background-color:rgba(0,200,255,.45)}75%{background-color:rgba(168,85,247,.45)}}
+    @keyframes fsc-rgb-text{0%,100%{color:#ff0040}25%{color:#ff8c00}50%{color:#00c8ff}75%{color:#a855f7}}
+    .fsc-card.fsc-card-icon{border:4px solid #ff0040;animation:fsc-rgb-border 2.5s linear infinite}
+    .fsc-card.fsc-card-icon .fsc-rarity,.fsc-card.fsc-card-icon .fsc-attr{animation:fsc-rgb-background 2.5s linear infinite}
+    .fsc-card.fsc-card-icon .fsc-ovr{animation:fsc-rgb-text 2.5s linear infinite}
     @media(max-width:760px){.fsc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px;padding:4px 13px 16px}.fsc-note{padding:0 15px 16px}.fsc-panel .panel-head{padding:17px 15px 13px}.fsc-open{width:100%}}
-    @media(prefers-reduced-motion:reduce){.fsc-card{transition:none}.fsc-card:hover{transform:none}}
+    @media(prefers-reduced-motion:reduce){.fsc-card{transition:none}.fsc-card:hover{transform:none}.fsc-card.fsc-card-icon,.fsc-card.fsc-card-icon .fsc-rarity,.fsc-card.fsc-card-icon .fsc-attr,.fsc-card.fsc-card-icon .fsc-ovr{animation:none}}
 
 .draw-card-front .draw-card-player-row{flex-direction:column;gap:6px}
 .draw-card-front .player-avatar{width:74px;height:74px;border-radius:20px;font-size:20px}

@@ -17,10 +17,6 @@ import { SNAPSHOT } from './catalog-snapshot.js';
  *     bônus de edição especial, fórmula de overall e limites por raridade).
  *  4. Casa o nome do jogador do FutSENAI com o do Cards ("Pietro" →
  *     "Pietro Guedes", "Matheus" → "Mateus", apelidos, acentos...).
- *
- * Limitação: as cartas que cada usuário *possui* ficam na conta dele (Supabase,
- * com login) e não podem ser lidas por outro site. Aqui aparecem as versões
- * disponíveis de cada jogador, não a coleção pessoal.
  */
   // ───────────────────────── Configuração ─────────────────────────
   const CARDS_SITE = 'https://fut-senai-cards.vercel.app/';
@@ -42,6 +38,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
     'Mateus Lopes': ['Matheus Lopes'],
     'Jonas Daniel': ['Jonas Daniel de Brito Lopes'],
     'Vinícius Assunção': ['Vinicius Assuncao'],
+    'Enzo Thomas': ['Enzo'],
   };
 
   // Forçar uma correspondência manual: "nome no FutSENAI" → "nome no Cards".
@@ -161,15 +158,21 @@ import { SNAPSHOT } from './catalog-snapshot.js';
       image: imports[identField(obj, 'image')] || null,
       attributes: objectField(obj, 'attributes'),
       gkAttributes: objectField(obj, 'gkAttributes') || undefined,
+      baseRarity: stringField(obj, 'baseRarity'),
+      baseOverall: numberField(obj, 'baseOverall'),
     }));
 
     const modDecl = playersTs.match(/RARITY_MODIFIER\b[^=]*=\s*\{/);
     if (!modDecl) throw new Error('RARITY_MODIFIER não encontrado');
     const modifiers = numbersIn(extractBlock(playersTs, modDecl.index + modDecl[0].length - 1) || '');
 
-    const bonusDecl = playersTs.match(/SPECIAL_BONUS\b[^=]*=\s*\{/);
-    if (!bonusDecl) throw new Error('SPECIAL_BONUS não encontrado');
-    const specialBonuses = numbersIn(extractBlock(playersTs, bonusDecl.index + bonusDecl[0].length - 1) || '');
+    const rarityBonusDecl = playersTs.match(/RARITY_OVR_BONUS\b[^=]*=\s*\{/);
+    if (!rarityBonusDecl) throw new Error('RARITY_OVR_BONUS não encontrado');
+    const rarityOverallBonuses = numbersIn(extractBlock(playersTs, rarityBonusDecl.index + rarityBonusDecl[0].length - 1) || '');
+
+    const specialBonusDecl = playersTs.match(/SPECIAL_OVR_BONUS\b[^=]*=\s*\{/);
+    if (!specialBonusDecl) throw new Error('SPECIAL_OVR_BONUS não encontrado');
+    const specialBonuses = numbersIn(extractBlock(playersTs, specialBonusDecl.index + specialBonusDecl[0].length - 1) || '');
 
     const metaDecl = typesTs.match(/RARITY_META\b[^=]*=\s*\{/);
     if (!metaDecl) throw new Error('RARITY_META não encontrado');
@@ -180,7 +183,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
     }
 
     const season = (playersTs.match(/SEASONS\s*=\s*\[\s*'([^']+)'/) || [])[1] || '';
-    return { templates, modifiers, specialBonuses, rarities, season, fingerprint: formulaFingerprint(playersTs) };
+    return { templates, modifiers, rarityOverallBonuses, specialBonuses, rarities, season, fingerprint: formulaFingerprint(playersTs) };
   }
 
   function isValidCatalog(c) {
@@ -192,11 +195,15 @@ import { SNAPSHOT } from './catalog-snapshot.js';
         if (typeof t.club !== 'string' || !/^[\w.-]+\.(jpe?g|png|webp)$/i.test(t.image || '')) return false;
         if (!t.attributes || !ATTR_KEYS.every(k => inRange(t.attributes[k]))) return false;
         if (t.position === 'GK' && !(t.gkAttributes && ['reflexes', 'positioning', 'handling'].every(k => inRange(t.gkAttributes[k])))) return false;
+        if (t.baseRarity && !RARITY_ORDER.includes(t.baseRarity)) return false;
+        if (t.baseOverall !== null && t.baseOverall !== undefined && !inRange(t.baseOverall)) return false;
       }
       for (const r of RARITY_ORDER) {
         const mod = c.modifiers && c.modifiers[r];
+        const rarityBonus = c.rarityOverallBonuses && c.rarityOverallBonuses[r];
         const meta = c.rarities && c.rarities[r];
         if (!Number.isFinite(mod) || mod < 0.5 || mod > 2) return false;
+        if (!Number.isFinite(rarityBonus) || rarityBonus < -10 || rarityBonus > 10) return false;
         if (!meta || !meta.label || !/^#[0-9a-f]{3,8}$/i.test(meta.color)) return false;
         if (!(meta.minOvr <= meta.maxOvr && meta.minOvr >= 0 && meta.maxOvr <= 99)) return false;
       }
@@ -234,8 +241,10 @@ import { SNAPSHOT } from './catalog-snapshot.js';
       positioning: apply(template.gkAttributes.positioning),
       handling: apply(template.gkAttributes.handling),
     } : undefined;
-    let overall = calculateOverall(template.position, attrs, gk);
-    overall = Math.min(99, overall + (catalog.specialBonuses[special] ?? 0));
+    const overallBase = template.baseOverall ?? calculateOverall(template.position, template.attributes, template.gkAttributes);
+    const overall = Math.min(99, overallBase
+      + (catalog.rarityOverallBonuses[rarityId] ?? 0)
+      + (catalog.specialBonuses[special] ?? 0));
     return {
       name: template.name, position: template.position, club: template.club, image: template.image,
       rarity: rarityId, special, label: meta.label, color: meta.color, edition: catalog.season, overall, ...attrs, ...(gk || {}),
@@ -298,7 +307,9 @@ import { SNAPSHOT } from './catalog-snapshot.js';
   // ───────────── Cache + atualização ao vivo ─────────────
   let catalog = SNAPSHOT;
   let catalogSig = '';
-  const signatureOf = c => hashString(JSON.stringify([c.templates, c.modifiers, c.rarities, c.season]));
+  const signatureOf = c => hashString(JSON.stringify([
+    c.templates, c.modifiers, c.rarityOverallBonuses, c.specialBonuses, c.rarities, c.season
+  ]));
   function getUncommonOverall(playerName) {
     const match = findCatalogPlayer(playerName, catalog);
     return match ? generateCard(match.template, 'uncommon', catalog).overall : null;
@@ -360,14 +371,16 @@ import { SNAPSHOT } from './catalog-snapshot.js';
 
   function attributeList(card) {
     return card.position === 'GK'
-      ? [['REF', card.reflexes], ['POS', card.positioning], ['HAN', card.handling], ['PAC', card.pace], ['DEF', card.defending], ['FIS', card.physical]]
-      : [['PAC', card.pace], ['SHO', card.shooting], ['PAS', card.passing], ['DRI', card.dribbling], ['DEF', card.defending], ['PHY', card.physical]];
+      ? [['REF', card.reflexes], ['POS', card.positioning], ['HAN', card.handling], ['VEL', card.pace], ['DEF', card.defending], ['FIS', card.physical]]
+      : [['VEL', card.pace], ['CHU', card.shooting], ['PAS', card.passing], ['DRI', card.dribbling], ['DEF', card.defending], ['FIS', card.physical]];
   }
 
   function renderCard(card) {
     const attrs = attributeList(card).map(([label, value]) => `<div class="fsc-attr"><span>${label}</span><b>${value}</b></div>`).join('');
     const src = IMAGE_BASE + encodeURIComponent(card.image);
-    return `<article class="fsc-card" style="--r:${escapeHtml(card.color)}" aria-label="${escapeHtml(card.name)}, ${escapeHtml(card.label)}, overall ${card.overall}, ${escapeHtml(card.position)}">
+    const iconClass = card.rarity === 'icon' ? ' fsc-card-icon' : '';
+    return `<a class="fsc-card-link" href="${CARDS_SITE}" target="_blank" rel="noopener noreferrer" aria-label="Abrir FutSENAI Cards: ${escapeHtml(card.name)}, ${escapeHtml(card.label)}, overall ${card.overall}">
+      <article class="fsc-card${iconClass}" style="--r:${escapeHtml(card.color)}" aria-hidden="true">
       <div class="fsc-ph" aria-hidden="true"></div>
       <img class="fsc-photo" src="${escapeHtml(src)}" alt="${escapeHtml(card.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">
       <div class="fsc-shade" aria-hidden="true"></div>
@@ -375,7 +388,8 @@ import { SNAPSHOT } from './catalog-snapshot.js';
       <div class="fsc-ovr">${card.overall}</div>
       <div class="fsc-edition">${escapeHtml(card.edition)}</div>
       <div class="fsc-info"><div class="fsc-pos">${escapeHtml(card.position)} · ${escapeHtml(card.club)}</div><div class="fsc-name">${escapeHtml(card.name)}</div><div class="fsc-attrs">${attrs}</div></div>
-    </article>`;
+      </article>
+    </a>`;
   }
 
   function buildSection(playerName) {
@@ -397,7 +411,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
     const cards = RARITY_ORDER.map(r => generateCard(template, r, catalog));
     const sameName = normalizeName(template.name) === normalizeName(playerName);
     const subtitle = sameName ? 'FutSENAI Cards · 6 raridades' : `FutSENAI Cards · ${escapeHtml(template.name)} · 6 raridades`;
-    section.innerHTML = `${head(subtitle)}<div class="fsc-grid">${cards.map(renderCard).join('')}</div><p class="fsc-note">Versões disponíveis deste jogador no FutSENAI Cards. As cartas que cada usuário já conquistou ficam na conta dele e não aparecem aqui.</p>`;
+    section.innerHTML = `${head(subtitle)}<div class="fsc-grid">${cards.map(renderCard).join('')}</div><p class="fsc-note">Versões disponíveis deste jogador no FutSENAI Cards.</p>`;
     section.querySelectorAll('.fsc-photo').forEach(img => {
       img.addEventListener('error', () => img.classList.add('is-missing'), { once: true });
     });

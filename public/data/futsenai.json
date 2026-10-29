@@ -10,90 +10,90 @@
     {
       "id": 1,
       "name": "Gabriel",
-      "photo_path": "/uploads/422e12db-2cbc-4116-a4cf-596c8126b0ac.png",
+      "photo_path": "/uploads/foto_gabriel.png",
       "is_active": 1,
       "quality": 2,
-      "photo_reserve_path": "/uploads/f7331fd5-58d7-4171-be1b-e56e148a12d2.png"
+      "photo_reserve_path": "/uploads/foto_gabriel_reserva.png"
     },
     {
       "id": 2,
       "name": "Thiago",
-      "photo_path": "/uploads/7adcd738-c114-4e8c-8aa5-24db63a728e5.png",
+      "photo_path": "/uploads/foto_thiago.png",
       "is_active": 1,
       "quality": 5,
-      "photo_reserve_path": "/uploads/478fe557-3f82-436e-b004-d30455d75c4a.png"
+      "photo_reserve_path": "/uploads/foto_thiago_reserva.png"
     },
     {
       "id": 3,
       "name": "Heitor",
-      "photo_path": "/uploads/ecdab063-7f6d-43cb-affd-6f12caf133b2.png",
+      "photo_path": "/uploads/foto_heitor.webp",
       "is_active": 1,
       "quality": 3,
-      "photo_reserve_path": "/uploads/4c8e61cf-17d9-4329-bddc-69dd30122af4.png"
+      "photo_reserve_path": "/uploads/foto_heitor_reserva.png"
     },
     {
       "id": 4,
       "name": "Assunção",
-      "photo_path": "/uploads/6adc75a3-dd0b-4b62-b638-efed486d64e2.png",
+      "photo_path": "/uploads/foto_assuncao.png",
       "is_active": 1,
       "quality": 3,
-      "photo_reserve_path": "/uploads/c228bf75-4f0a-4db5-8d74-80014a29e6c2.jpg"
+      "photo_reserve_path": "/uploads/foto_assuncao_reserva.jpg"
     },
     {
       "id": 5,
       "name": "Jonas",
-      "photo_path": "/uploads/e6a403cc-8674-4af3-9b00-e05e786fb13a.png",
+      "photo_path": "/uploads/foto_jonas.png",
       "is_active": 1,
       "quality": 3,
-      "photo_reserve_path": "/uploads/fd1e9449-1f53-4fc7-9cf6-47b9375a36c5.jpg"
+      "photo_reserve_path": "/uploads/foto_jonas_reserva.jpg"
     },
     {
       "id": 6,
       "name": "Pietro",
-      "photo_path": "/uploads/0eb7980b-1172-4807-b5cd-1c81a5cea20d.jpg",
+      "photo_path": "/uploads/foto_pietro.jpg",
       "is_active": 1,
       "quality": 5,
-      "photo_reserve_path": "/uploads/0bc5ad40-b181-405c-b239-df1bc4a1109d.jpg"
+      "photo_reserve_path": "/uploads/foto_pietro_reserva.jpg"
     },
     {
       "id": 7,
       "name": "Dutra",
-      "photo_path": "/uploads/3548b843-8f4d-4755-beb0-f5181c51952b.png",
+      "photo_path": "/uploads/foto_dutra.png",
       "is_active": 1,
       "quality": 3,
-      "photo_reserve_path": "/uploads/50c49567-164d-4da5-8cdd-ded10b654615.png"
+      "photo_reserve_path": "/uploads/foto_dutra_reserva.png"
     },
     {
       "id": 8,
       "name": "João",
-      "photo_path": "/uploads/8c6bba5d-23f2-426c-a3f1-2d52ddb270b9.jpg",
+      "photo_path": "/uploads/foto_joao.jpg",
       "is_active": 1,
       "quality": 4,
-      "photo_reserve_path": "/uploads/c1b9761e-37a5-4353-8947-e037848377f8.png"
+      "photo_reserve_path": "/uploads/foto_joao_reserva.png"
     },
     {
       "id": 9,
       "name": "Muzy",
-      "photo_path": "/uploads/8ee07653-108d-41a3-9888-758955ba51d7.png",
+      "photo_path": "/uploads/foto_muzy.png",
       "is_active": 1,
       "quality": 3,
-      "photo_reserve_path": "/uploads/487aca09-3e24-48a0-992a-4bc7a61deff3.png"
+      "photo_reserve_path": "/uploads/foto_muzy_reserva.png"
     },
     {
       "id": 10,
       "name": "Mateus",
-      "photo_path": "/uploads/9ba461a4-0433-4e00-a094-a9798f3fcd37.png",
+      "photo_path": "/uploads/foto_mateus.png",
       "is_active": 1,
       "quality": 2,
-      "photo_reserve_path": "/uploads/3066ad2b-e7dd-4efe-8ad8-abea3e4cffad.jpg"
+      "photo_reserve_path": "/uploads/foto_mateus_reserva.jpg"
     },
     {
       "id": 11,
       "name": "Enzo",
-      "photo_path": "/uploads/64989a2b-92f9-4761-b798-2fd652a08dba.png",
+      "photo_path": "/uploads/foto_enzo.png",
       "is_active": 1,
       "quality": 4,
-      "photo_reserve_path": "/uploads/1b2d7530-d4de-4c6e-925c-aafa9305c444.png"
+      "photo_reserve_path": "/uploads/foto_enzo_reserva.png"
     }
   ],
   "matches": [
