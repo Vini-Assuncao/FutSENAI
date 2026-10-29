@@ -53,6 +53,12 @@ Para desenvolvimento com reinício automático:
 npm run dev
 ```
 
+### Publicar no Vercel (somente leitura)
+
+O arquivo `vercel.json` configura o Vercel para publicar somente a pasta `public/`, sem tentar detectar ou iniciar o servidor Express. Importe o repositório no Vercel mantendo a raiz do projeto como diretório raiz e faça o deploy; não é necessário configurar comando de build.
+
+Como no GitHub Pages, essa publicação serve a cópia incluída em `public/data/futsenai.json` e permite apenas visualizar os dados. Cadastros, alterações e uploads não são persistidos no Vercel. Para usar edição compartilhada, é necessário hospedar a API e migrar os dados e fotos para serviços persistentes.
+
 Os registros iniciais estão incluídos em `public/data/futsenai.json`. O servidor atualiza esse arquivo ao cadastrar ou alterar jogadores, partidas e gols. As imagens ficam em `public/uploads/`. Para preservar os dados, mantenha ambos no projeto e faça backup antes de editar o JSON manualmente. O salvamento usa substituição atômica do arquivo para evitar deixar um JSON parcialmente escrito se ocorrer uma falha durante a gravação.
 
 ### Dados incluídos no repositório
