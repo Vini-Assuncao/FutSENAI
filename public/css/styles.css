@@ -263,7 +263,7 @@
 .view-only-mode [data-action="delete-assist"],
 .view-only-mode .player-card-actions{display:none!important}
 .admin-mode-notice[hidden]{display:none!important}
-.admin-mode-notice{display:block;margin:-19px 10px 24px;padding:6px 9px;border:1px solid #f0d9a8;border-radius:9px;background:#fff8e8;color:#76551d;font-size:9px;font-weight:900;letter-spacing:.55px;white-space:nowrap}
+.admin-mode-notice{display:block;margin:0 10px 24px;padding:6px 9px;border:1px solid #f0d9a8;border-radius:9px;background:#fff8e8;color:#76551d;font-size:9px;font-weight:900;letter-spacing:.55px;white-space:nowrap}
 .draw-test-notice{display:grid;gap:4px;margin-bottom:16px;padding:13px 15px;border:1px solid #dce5f5;background:#f5f8ff;color:#4d5e7b;line-height:1.5}
 .draw-test-notice strong{color:#34496f;font-size:12px}
 .team-draw-test-mode .section-caption{margin-top:8px}
@@ -523,17 +523,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* Card do Jornal */
 .sidebar-news-card{border:1px solid var(--red-line);border-radius:16px;margin:0 2px 12px;background:linear-gradient(165deg,#fff6f7 0%,#ffe9ec 100%);box-shadow:0 6px 18px rgba(215,25,63,.07)}
+.sidebar{min-height:0;max-height:100vh}
 .sidebar-news-card:hover{border-color:#e7a1b0;background:linear-gradient(165deg,#fff6f7 0%,#ffe9ec 100%);transform:translateY(-2px);box-shadow:0 10px 24px rgba(215,25,63,.12)}
-.sidebar-news-cover{height:78px;border-radius:11px}
+.sidebar-news-cover{height:86px;border-radius:11px}
 .sidebar-news-kicker{font-size:9px;color:#94505e}
 .sidebar-news-fresh{font-size:8px;padding:4px 7px}
 .sidebar-news-tag{font-size:9px;padding:4px 8px;border-radius:7px}
 .sidebar-news-meta time{font-size:10px}
-.sidebar-news-title{font-size:12px;color:var(--ink)}
-.sidebar-news-excerpt{font-size:11px;color:var(--muted)}
+.sidebar-news-title{font-size:11px;color:var(--ink);-webkit-line-clamp:2}
+.sidebar-news-excerpt{font-size:10px;color:var(--muted)}
 .sidebar-news-cta{font-size:10px;border-top-color:#f3dde2}
 .sidebar-news-nav{width:28px;height:28px;border-radius:9px}
 .sidebar-news-dot{width:7px;height:7px}
+@media(max-height:700px) and (min-width:761px){
+  .sidebar{max-height:100vh}
+  .brand{padding-bottom:20px}
+  .nav-item{padding-top:9px;padding-bottom:9px}
+  .sidebar-news-card{padding:7px 8px}
+  .sidebar-news-cover{height:58px;margin-bottom:5px}
+  .sidebar-news-kicker{margin-bottom:6px}
+  .sidebar-news-meta{margin-bottom:5px}
+  .sidebar-news-title{-webkit-line-clamp:2;font-size:10px}
+  .sidebar-news-excerpt{-webkit-line-clamp:2;margin:4px 0 6px}
+  .sidebar-news-controls{margin-top:6px;padding-top:5px}
+}
 
 /* ---------- 4. Topo ---------- */
 .topbar{position:sticky;top:0;z-index:30;height:72px;padding:0 40px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:saturate(180%) blur(14px);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
@@ -928,7 +941,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .mobile-brand{font-size:15px}
   .read-only-notice{margin:12px 16px 0}
   .match-card-scoreboard{padding:12px 6px}
-  .today-chip{padding:6px 10px}
+  .today-chip{display:none}
 }
 @media(max-width:480px){
   .stat-foot{font-size:10px}
@@ -986,8 +999,6 @@ noscript .noscript-msg{display:block;margin:40px auto;max-width:420px;padding:20
     .fsc-card.fsc-card-icon .fsc-rarity,.fsc-card.fsc-card-icon .fsc-attr{animation:fsc-rgb-background 2.5s linear infinite}
     .fsc-card.fsc-card-icon .fsc-ovr{animation:fsc-rgb-text 2.5s linear infinite}
     @media(max-width:760px){.fsc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px;padding:4px 13px 16px}.fsc-note{padding:0 15px 16px}.fsc-panel .panel-head{padding:17px 15px 13px}.fsc-open{width:100%}}
-    @media(prefers-reduced-motion:reduce){.fsc-card{transition:none}.fsc-card:hover{transform:none}.fsc-card.fsc-card-icon,.fsc-card.fsc-card-icon .fsc-rarity,.fsc-card.fsc-card-icon .fsc-attr,.fsc-card.fsc-card-icon .fsc-ovr{animation:none}}
-
 .draw-card-front .draw-card-player-row{flex-direction:column;gap:6px}
 .draw-card-front .player-avatar{width:74px;height:74px;border-radius:20px;font-size:20px}
 .draw-card-front .draw-card-player-copy{width:100%;text-align:center}

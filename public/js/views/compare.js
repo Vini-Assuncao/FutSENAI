@@ -36,12 +36,10 @@ const PERFORMANCE_GROUP = {
     { label: '⚑ Partidas', get: ({ stats }) => stats.matches_played, better: 'higher' },
     { label: '✦ Vitórias', get: ({ stats }) => stats.wins, better: 'higher' },
     { label: '＝ Empates', get: ({ stats }) => stats.draws, better: null, hideWhenZero: true },
-    { label: '✖ Derrotas', get: ({ stats }) => stats.losses, better: 'lower' },
-    { label: '↗ Aproveitamento', get: ({ stats }) => stats.win_rate, better: 'higher', format: v => `${v}%` },
+    { label: '⚔︎ Confrontos diretos', get: ({ directWins }) => directWins, better: 'higher' },
     { label: '⚽︎ Gols', get: ({ stats }) => stats.goals, better: 'higher' },
     { label: '♕ Assistências', get: ({ stats }) => stats.assists, better: 'higher' },
-    { label: '✚ Participações em gol', get: ({ stats }) => stats.ga, better: 'higher' },
-    { label: '⌀ Gols por partida', get: ({ stats }) => stats.goals_per_match, better: 'higher', format: v => v.toFixed(2) }
+    { label: '✚ Participações em gol', get: ({ stats }) => stats.ga, better: 'higher' }
   ]
 };
 
@@ -191,13 +189,13 @@ function headerPlayer(player, side) {
 }
 
 function renderResult(result, playerA, playerB, cardA, cardB) {
+  const totals = result.headToHead.totals;
   const scoreBoard = { a: 0, b: 0 };
-  const sideA = { scope: result.scope, stats: result.a, player: result.a, card: cardA };
-  const sideB = { scope: result.scope, stats: result.b, player: result.b, card: cardB };
+  const sideA = { scope: result.scope, stats: result.a, player: result.a, card: cardA, directWins: totals.opposed.a_wins };
+  const sideB = { scope: result.scope, stats: result.b, player: result.b, card: cardB, directWins: totals.opposed.b_wins };
   const performanceTable = statTable(PERFORMANCE_GROUP, sideA, sideB, scoreBoard, playerA, playerB);
   const cardTable = statTable(CARD_GROUP, sideA, sideB, null, playerA, playerB);
 
-  const totals = result.headToHead.totals;
   const text = duelSummaryText(totals, playerA, playerB);
   const leader = scoreBoard.a === scoreBoard.b
     ? 'Empate'
@@ -231,8 +229,8 @@ function renderResult(result, playerA, playerB, cardA, cardB) {
         <span class="results-label">${result.headToHead.matches.length} ${result.headToHead.matches.length === 1 ? 'partida' : 'partidas'}</span>
       </div>
       <div class="duel-summary">
-        <div class="duel-stat duel-stat-together"><span>Mesmo time</span><strong>${totals.together.matches}</strong><small>${text.together}</small></div>
         <div class="duel-stat duel-stat-opposed"><span>Confrontos diretos</span><strong>${totals.opposed.matches}</strong><small>${text.opposed}</small>${duelLeaderPhoto ? `<div class="duel-stat-leader">${duelLeaderPhoto}</div>` : ''}</div>
+        <div class="duel-stat duel-stat-together"><span>Mesmo time</span><strong>${totals.together.matches}</strong><small>${text.together}</small></div>
       </div>
       <div class="duel-list">${duelList(result.headToHead.matches, playerA, playerB)}</div>
     </section>
