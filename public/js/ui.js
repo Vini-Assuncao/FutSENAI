@@ -1,4 +1,5 @@
 // ui.js
+import { syncHistory } from './routes.js';
 import { viewNames } from './config.js';
 import { freshJournalNews, isFreshJournalNews } from './journal.js';
 import { canEdit, modalRoot, pageContent, state, toastStack } from './state.js';
@@ -15,6 +16,7 @@ export function setLoading(message = 'Carregando...') {
   pageContent.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>${esc(message)}</p></div>`;
 }
 export function updateChrome() {
+  syncHistory();
   const editor = canEdit();
   document.body.classList.toggle('editor-mode', editor);
   document.body.classList.toggle('view-only-mode', !editor);

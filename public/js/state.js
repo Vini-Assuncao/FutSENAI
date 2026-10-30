@@ -30,6 +30,7 @@ export const state = {
   selectedMatch: null,
   selectedPlayerId: null,
   playerProfile: null,
+  routeResolving: false,
   playerDetailReturnView: 'players',
   playerSearch: '',
   playerStatus: 'active',
