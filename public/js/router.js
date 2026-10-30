@@ -8,6 +8,7 @@ import { renderMatches } from './views/matches.js';
 import { renderPlayerDetail } from './views/player-detail.js';
 import { renderPlayers } from './views/players.js';
 import { renderStats } from './views/stats.js';
+import { renderCompare } from './views/compare.js';
 
 export async function navigate(view) {
   if (state.view !== view) state.previousView = state.view;
@@ -24,6 +25,7 @@ export async function renderCurrent() {
     if (state.view === 'players') return await renderPlayers();
     if (state.view === 'matches') return await renderMatches();
     if (state.view === 'stats') return await renderStats();
+    if (state.view === 'compare') return await renderCompare();
     if (state.view === 'matchDetail') return await renderMatchDetail();
     if (state.view === 'playerDetail') return await renderPlayerDetail();
   } catch (error) {

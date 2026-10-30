@@ -94,6 +94,14 @@ function staticApi(url, method) {
   }
   if (endpoint.pathname.endsWith('/api/matches')) return { data: Stats.matchList(data, scope), scope };
   if (endpoint.pathname.endsWith('/api/stats')) return Stats.statistics(data, scope);
+  if (endpoint.pathname.endsWith('/api/compare')) {
+    const a = Number(endpoint.searchParams.get('a'));
+    const b = Number(endpoint.searchParams.get('b'));
+    if (a === b) throw new Error('Escolha dois jogadores diferentes.');
+    const result = Stats.compare(data, a, b, scope);
+    if (!result) throw new Error('Jogador não encontrado no JSON publicado.');
+    return result;
+  }
   const matchDetail = endpoint.pathname.match(/\/api\/matches\/(\d+)$/);
   if (matchDetail) {
     const result = Stats.matchDetail(data, Number(matchDetail[1]));

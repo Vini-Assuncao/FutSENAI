@@ -50,6 +50,7 @@ export async function submitMatchForm(form) {
     const result = await api('/api/matches', jsonOptions('POST', payload));
     toast(result.message || 'Partida criada.');
     closeModal();
+    if (state.dashboard) state.dashboard.summary.allMatches++;
     state.previousView = state.view;
     state.selectedMatch = result.data.id;
     state.view = 'matchDetail';
@@ -97,7 +98,9 @@ export async function deleteMatch(id) {
   try {
     const result = await api(`/api/matches/${id}`, { method: 'DELETE' });
     toast(result.message || 'Partida excluída.');
+    if (state.dashboard) state.dashboard.summary.allMatches = Math.max(0, state.dashboard.summary.allMatches - 1);
     state.selectedMatch = null;
+    updateChrome();
     if (state.view === 'matchDetail') { state.view = 'matches'; updateChrome(); }
     await renderCurrent();
   } catch (error) { toast(error.message, 'error'); }

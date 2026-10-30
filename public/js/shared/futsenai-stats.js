@@ -233,6 +233,96 @@
     };
   }
 
+  // Partidas de um jogador no escopo, da mais recente para a mais antiga, com o resultado do ponto de vista dele.
+  function appearanceRows(player, scope, data) {
+    const matchesById = new Map(data.matches.map(match => [match.id, match]));
+    return data.match_players
+      .filter(participant => participant.player_id === player.id)
+      .map(participant => ({ participant, match: matchesById.get(participant.match_id) }))
+      .filter(row => row.match && matchInScope(row.match, scope))
+      .sort((left, right) => byDateDesc(left.match, right.match))
+      .map(({ participant, match }) => {
+        const score = scoresOf(match.id, data);
+        const own = participant.team_side === 'A' ? score.A : score.B;
+        const rival = participant.team_side === 'A' ? score.B : score.A;
+        const goals = data.goals.filter(goal => goal.match_id === match.id && goal.player_id === player.id && goal.goal_type === 'normal').length;
+        return {
+          matchId: match.id,
+          match,
+          side: participant.team_side,
+          result: own > rival ? 'W' : own === rival ? 'D' : 'L',
+          goals,
+          assists: Number(participant.assists) || 0
+        };
+      });
+  }
+
+  function sideSummary(player, scope, data) {
+    const rows = appearanceRows(player, scope, data);
+    const base = playerStats(player, scope, data);
+    const recent = rows.slice(0, 5);
+    return {
+      ...base,
+      ga: base.goals + base.assists,
+      goals_in_wins: rows.filter(row => row.result === 'W').reduce((sum, row) => sum + row.goals, 0),
+      form: recent.map(row => row.result),
+      form_points: recent.reduce((sum, row) => sum + (row.result === 'W' ? 3 : row.result === 'D' ? 1 : 0), 0),
+      rows
+    };
+  }
+
+  // Comparação entre dois jogadores no mesmo escopo (3º A ou 2º Ano), com confrontos diretos.
+  function compare(data, playerIdA, playerIdB, scope = 'internal') {
+    const normalized = normalizeScope(scope);
+    const playerA = data.players.find(player => player.id === playerIdA);
+    const playerB = data.players.find(player => player.id === playerIdB);
+    if (!playerA || !playerB || playerIdA === playerIdB) return null;
+
+    const sideA = sideSummary(playerA, normalized, data);
+    const sideB = sideSummary(playerB, normalized, data);
+    const rowsB = new Map(sideB.rows.map(row => [row.matchId, row]));
+
+    const headToHead = [];
+    for (const rowA of sideA.rows) {
+      const rowB = rowsB.get(rowA.matchId);
+      if (!rowB) continue;
+      headToHead.push({
+        ...matchSummary(rowA.match, data),
+        together: rowA.side === rowB.side,
+        a: { side: rowA.side, result: rowA.result, goals: rowA.goals, assists: rowA.assists },
+        b: { side: rowB.side, result: rowB.result, goals: rowB.goals, assists: rowB.assists }
+      });
+    }
+    headToHead.sort((left, right) => byDateDesc(left, right));
+
+    const together = headToHead.filter(row => row.together);
+    const opposed = headToHead.filter(row => !row.together);
+    const strip = ({ rows, ...rest }) => rest;
+
+    return {
+      scope: normalized,
+      a: strip(sideA),
+      b: strip(sideB),
+      headToHead: {
+        totals: {
+          together: {
+            matches: together.length,
+            wins: together.filter(row => row.a.result === 'W').length,
+            draws: together.filter(row => row.a.result === 'D').length,
+            losses: together.filter(row => row.a.result === 'L').length
+          },
+          opposed: {
+            matches: opposed.length,
+            a_wins: opposed.filter(row => row.a.result === 'W').length,
+            b_wins: opposed.filter(row => row.b.result === 'W').length,
+            draws: opposed.filter(row => row.a.result === 'D').length
+          }
+        },
+        matches: headToHead
+      }
+    };
+  }
+
   return {
     normalizeScope,
     matchList,
@@ -244,6 +334,7 @@
     playerHistory,
     matchDetail,
     dashboard,
-    statistics
+    statistics,
+    compare
   };
 });

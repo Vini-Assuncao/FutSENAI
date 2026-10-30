@@ -121,12 +121,12 @@
 
 .brand-icon{width:30px;height:30px;place-items:center}
 
-.stats-table tr.rank-gold td{background:#fffaf0}
-.stats-table tr.rank-silver td{background:#f7f7f8}
-.stats-table tr.rank-bronze td{background:#fff7f2}
-.stats-table tbody tr.rank-gold:hover td{background:#fffaf0}
-.stats-table tbody tr.rank-silver:hover td{background:#f7f7f8}
-.stats-table tbody tr.rank-bronze:hover td{background:#fff7f2}
+.stats-table tr.rank-gold td{background:#fff8eb}
+.stats-table tr.rank-silver td{background:#f5f5f5}
+.stats-table tr.rank-bronze td{background:#fff4ed}
+.stats-table tbody tr.rank-gold:hover td{background:#fff8eb}
+.stats-table tbody tr.rank-silver:hover td{background:#f5f5f5}
+.stats-table tbody tr.rank-bronze:hover td{background:#fff4ed}
 .stats-sort-button{display:block;margin:0 auto;border:0;background:transparent;color:inherit;font:inherit;text-transform:inherit;cursor:pointer}
 .stats-sort-button:hover,.stats-sort-button.active{color:var(--red)}
 .quick-panel .quick-action-icon{display:grid;place-items:center;width:48px;height:48px;margin:0;border-radius:13px;font-size:28px;line-height:1;color:var(--red-dark)}
@@ -241,7 +241,7 @@
 .draw-card-player-row .player-avatar{border:3px solid #fff;box-shadow:0 2px 9px #25263020}
 .draw-card-player-copy{justify-items:center;gap:7px;width:100%}
 .draw-card-player-copy strong{display:-webkit-box;max-width:100%;overflow:hidden;line-height:1.25;text-overflow:ellipsis;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-.draw-card-player-copy small{padding:4px 7px;border:1px solid #f0e3c8;border-radius:12px;background:#fffaf0}
+.draw-card-player-copy small{padding:4px 7px;border:1px solid #f0e3c8;border-radius:12px;background:#fff8eb}
 @media(max-width:560px){.draw-team-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.draw-player-card{max-width:124px}.draw-card-front{gap:8px;padding:13px 7px 10px}.draw-card-player-row .player-avatar{width:50px;height:50px;border-radius:15px}.draw-card-player-copy strong{font-size:10px}}
 .read-only-notice{padding:12px 16px;border:1px solid #f0d9a8;background:#fff8e8;color:#76551d;line-height:1.5}
 .read-only-notice[hidden]{display:none}
@@ -998,3 +998,121 @@ noscript .noscript-msg{display:block;margin:40px auto;max-width:420px;padding:20
 .dashboard-ad-content{justify-content:center}
 .dashboard-ad-content>a{display:flex;justify-content:center;width:100%}
   
+
+/* ---------- Comparar jogadores ---------- */
+.compare-picker{display:grid;grid-template-columns:minmax(180px,1fr) minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:end;padding:18px 20px;margin-bottom:18px}
+.compare-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-weight:700}
+.compare-field span{font-size:12px;color:var(--muted)}
+.compare-field select{height:42px;width:100%;background:#fff;border:1px solid #e6e7ed;border-radius:10px;padding:0 34px 0 12px;color:#484b56;outline:none}
+.compare-field select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(215,25,63,.08)}
+.compare-vs{font:800 22px var(--display);color:#c2c3cb;text-align:center;padding-bottom:6px}
+
+/* Cabeçalho com os dois jogadores em destaque */
+.compare-hero{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:24px;padding:30px 34px;margin-bottom:18px}
+.compare-head-player{display:flex;align-items:center;gap:20px;min-width:0}
+.compare-head-player.side-b{justify-content:flex-end;text-align:right}
+.compare-head-player strong{font:800 28px var(--display);letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-avatar{width:104px;height:104px;border-radius:24px;font-size:30px;flex:none}
+.compare-hero .compare-vs{font-size:36px;color:var(--red)}
+
+/* Placar de liderança */
+.compare-scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;margin-bottom:18px}
+.compare-score-side{min-width:0}
+.compare-score-side span{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-score-side strong{display:block;font:800 36px/1.1 var(--display)}
+.compare-score-side small{color:var(--muted)}
+.compare-score-side.side-b{text-align:right}
+.compare-score-mid{display:flex;flex-direction:column;align-items:center;gap:8px;font:800 13px var(--display);color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:center}
+.leader-avatar{width:44px;height:44px;border-radius:14px;font-size:14px;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--red-line)}
+
+/* Seções em largura total */
+.compare-section{margin-bottom:18px}
+.compare-table th{text-align:left;font-weight:700;color:var(--ink-2);padding:11px 14px;border-top:1px solid #f0f0f3;white-space:nowrap}
+.compare-table thead th{border-top:0;color:var(--muted);font-size:11px;letter-spacing:.4px}
+.compare-table td{padding:11px 14px}
+.compare-table td.num{text-align:center;font-weight:700;min-width:110px}
+.compare-table td.is-best{background:var(--green-soft);color:var(--green);font-weight:800}
+.compare-table tbody tr:hover td.is-best{background:#c9ecd9;color:#0d6847}
+.best-mark{color:var(--green);margin-right:5px;font-size:12px}
+.compare-table thead th.num{text-align:center}
+
+/* Carta Incomum: atributos à esquerda, cartas à direita */
+.compare-card-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;padding-bottom:18px}
+.compare-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:8px 18px 0;justify-items:center;align-items:start}
+.compare-card-slot{width:100%;max-width:230px}
+.compare-card-slot .fsc-card{max-width:100%}
+.compare-no-card{padding:24px 14px;border:1px dashed var(--line);border-radius:16px;text-align:center;color:var(--muted);width:100%;font-size:12px}
+
+/* Confronto direto */
+.compare-duel-panel,.compare-form-panel{margin-bottom:18px}
+.duel-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0 22px 14px}
+.duel-stat{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface-2);position:relative;min-width:0}
+.duel-stat span{display:block;font-size:12px;font-weight:800}
+.duel-stat strong{display:block;font:800 26px var(--display);margin:4px 0}
+.duel-stat small{color:var(--muted);line-height:1.5}
+.duel-stat-together{border-color:var(--blue-line);background:var(--blue-soft)}
+.duel-stat-together span{color:var(--blue)}
+.duel-stat-opposed{border-color:var(--red-line);background:var(--red-soft)}
+.duel-stat-opposed span{color:var(--red)}
+.duel-stat-leader{position:absolute;right:14px;top:14px}
+.duel-stat-leader .player-avatar{width:40px;height:40px;border-radius:12px}
+.duel-list{padding:0 22px 22px}
+.duel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.duel-card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .18s var(--ease),box-shadow .18s var(--ease),transform .18s var(--ease);min-width:0}
+.duel-card:hover,.duel-card:focus-visible{border-color:#f0b6c3;box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.duel-card.is-together{border-left:4px solid var(--blue)}
+.duel-card.is-opposed{border-left:4px solid var(--red)}
+.duel-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px}
+.duel-date{font-weight:700}
+.duel-tag{font-weight:800;font-size:11px;letter-spacing:.3px;padding:4px 8px;border-radius:7px;background:var(--red-soft);color:var(--red)}
+.duel-card.is-together .duel-tag{background:var(--blue-soft);color:var(--blue)}
+.duel-card-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;text-align:center}
+.duel-team{display:flex;align-items:center;gap:7px;min-width:0;justify-content:center}
+.duel-team strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.duel-card-score .match-score{font:800 22px var(--display)}
+.duel-card-players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duel-player{background:var(--surface-2);border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:2px;min-width:0;border:1px solid transparent}
+.duel-player.is-w{border-color:var(--green-soft);background:var(--green-soft)}
+.duel-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.duel-player em{font-style:normal;font-weight:800;font-size:12px}
+.duel-player small{color:var(--muted);font-size:12px}
+.duel-card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #f0f0f3;padding-top:10px;min-width:0}
+.duel-winner{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;font-weight:700;color:var(--green)}
+.duel-winner strong{font-weight:800}
+.duel-winner span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.duel-winner.is-loss,.duel-winner.is-draw{color:var(--muted)}
+.duel-winner.is-loss span{color:var(--red)}
+.duel-winner-avatar{width:30px;height:30px;border-radius:10px;font-size:11px;box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--green-soft)}
+.duel-open{color:var(--red);font-weight:700;font-size:12px;white-space:nowrap}
+.result-w{color:var(--green)}
+.result-d{color:var(--amber)}
+.result-l{color:var(--red)}
+.compare-form-panel{padding-bottom:16px}
+.form-row{display:flex;align-items:center;gap:14px;padding:12px 22px;border-top:1px solid #f0f0f3}
+.form-row>span{width:130px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.form-row>div{display:flex;gap:6px;flex-wrap:wrap}
+.form-chip{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font:800 12px var(--display)}
+.form-w{background:var(--green-soft);color:var(--green)}
+.form-d{background:var(--amber-soft);color:var(--amber)}
+.form-l{background:var(--red-soft);color:var(--red)}
+.compare-muted{color:var(--muted);font-size:12px}
+.compare-empty{padding:60px 20px;background:#fff;border:1px solid var(--line);border-radius:var(--radius)}
+@media(max-width:1100px){.duel-grid,.compare-card-layout{grid-template-columns:1fr}}
+@media(max-width:760px){
+  .compare-picker{grid-template-columns:1fr;gap:10px}
+  .compare-vs-picker{display:none}
+  .compare-hero{grid-template-columns:1fr;gap:14px;text-align:center;padding:22px}
+  .compare-head-player,.compare-head-player.side-b{justify-content:center;text-align:center;flex-direction:column}
+  .compare-head-player strong{font-size:22px}
+  .compare-avatar{width:84px;height:84px;border-radius:20px}
+  .compare-scoreboard{gap:8px;padding:14px}
+  .compare-score-side strong{font-size:28px}
+  .duel-summary,.duel-card-players{grid-template-columns:1fr}
+  .form-row>span{width:100px}
+  .compare-cards{grid-template-columns:1fr 1fr;gap:10px;padding:8px 8px 0}
+}
+
+/* Pódio no ranking: a linha ganha a cor do colocado ao passar o mouse */
+.stats-table tbody tr.rank-gold:hover td,.stats-table tbody tr.rank-gold:focus-visible td{background:#ffedb0!important}
+.stats-table tbody tr.rank-silver:hover td,.stats-table tbody tr.rank-silver:focus-visible td{background:#e3e6ec!important}
+.stats-table tbody tr.rank-bronze:hover td,.stats-table tbody tr.rank-bronze:focus-visible td{background:#f7d6bb!important}

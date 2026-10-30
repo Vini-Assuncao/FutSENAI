@@ -33,7 +33,18 @@ export function updateChrome() {
   document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === activeView));
   const date = new Date();
   document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(date).replace('.', '');
-  if (state.dashboard) document.getElementById('navPlayerCount').textContent = state.dashboard.summary.activePlayers;
+  const matchesNav = document.querySelector('.nav-item[data-view="matches"]');
+  let matchCount = document.getElementById('navMatchCount');
+  if (!matchCount && matchesNav) {
+    matchCount = document.createElement('span');
+    matchCount.className = 'nav-count';
+    matchCount.id = 'navMatchCount';
+    matchesNav.append(matchCount);
+  }
+  if (state.dashboard) {
+    document.getElementById('navPlayerCount').textContent = state.dashboard.summary.activePlayers;
+    if (matchCount) matchCount.textContent = state.dashboard.summary.allMatches;
+  }
 }
 export function renderBreadcrumb() {
   const home = '<button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI</button>';

@@ -38,7 +38,7 @@ export function bindGlobalEvents() {
         state.antiResenha = !state.antiResenha;
         const preferenceSaved = saveAntiResenhaPreference(state.antiResenha);
         updateChrome();
-        toast(`${state.antiResenha ? 'Modo anti-resenha ativado.' : 'Modo normal ativado.'}${preferenceSaved ? '' : ' A preferência não pôde ser salva neste navegador.'}`, preferenceSaved ? 'success' : 'warning');
+        if (!preferenceSaved) toast('A preferência do modo anti-resenha não pôde ser salva neste navegador.', 'warning');
         await renderCurrent();
         return;
       }
@@ -110,6 +110,11 @@ export function bindGlobalEvents() {
       else if (action === 'back-matches' || action === 'go-matches') await navigate('matches');
       else if (action === 'go-players') await navigate('players');
       else if (action === 'go-stats') await navigate('stats');
+      else if (action === 'compare-player') {
+        // Abre a comparação já com este jogador no primeiro espaço; o segundo fica para ser escolhido.
+        state.compare = { a: id, b: state.compare.b === id ? null : state.compare.b };
+        await navigate('compare');
+      }
       else if (action === 'open-player-profile') {
         state.playerDetailReturnView = state.view === 'matchDetail' || state.view === 'playerDetail' ? 'matches' : state.view;
         state.previousView = state.view;
@@ -175,6 +180,11 @@ export function bindGlobalEvents() {
   document.addEventListener('change', async event => {
     if (event.target.id === 'playerStatus') { state.playerStatus = event.target.value; await renderPlayers(); }
     if (event.target.id === 'statsScope') { state.statsScope = event.target.value; await renderCurrent(); }
+    if (event.target.id === 'compareScope') { state.compareScope = event.target.value; await renderCurrent(); }
+    if (event.target.id === 'compareA' || event.target.id === 'compareB') {
+      state.compare[event.target.id === 'compareA' ? 'a' : 'b'] = Number(event.target.value) || null;
+      await renderCurrent();
+    }
   });
   document.getElementById('mobileMenu').addEventListener('click', () => {
     setSidebarOpen(!document.getElementById('sidebar').classList.contains('open'));

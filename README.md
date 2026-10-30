@@ -7,6 +7,7 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Painel inicial:** jogadores ativos, partidas registradas, total e média de gols, partidas recentes e artilharia. No celular, as datas das últimas partidas usam o formato compacto `dd/mm/aaaa`.
 - **Jogadores:** cadastro e edição do nome, foto principal e foto reserva opcional. A integração com o FutSENAI Cards busca e valida o catálogo público (com uma cópia embutida como fallback), exibe as seis raridades na ficha do jogador e reproduz os bônus de Overall por raridade; a carta Ícone tem borda e elementos com animação RGB. O Overall usado no elenco e no sorteio corresponde à carta Incomum; a foto reserva é usada na apresentação alternativa e, se estiver ausente, a foto principal continua sendo exibida.
 - **Desempenho individual:** clique no cartão do jogador no elenco ou no nome dele na artilharia, no ranking ou na súmula para ver partidas, gols, assistências, vitórias, empates e derrotas separados entre jogos do 3º A e interclasse contra o 2º Ano. O histórico individual reúne as dez participações mais recentes dos dois modos, com acesso à súmula de cada partida.
+- **Comparar jogadores:** escolha dois jogadores e o recorte (entre nós · 3º A ou contra o 2º Ano). A tela mostra as cartas Incomum lado a lado, o confronto direto (partidas no mesmo time e em lados opostos), a forma recente e uma tabela com as estatísticas, destacando com ★ quem é melhor em cada uma.
 - **Fotos ampliadas:** clique ou use Enter/Espaço em uma foto de jogador para abri-la em um pop-up quadrado de tamanho uniforme. Feche clicando fora, no botão × ou pressionando Esc.
 - **Modo anti-resenha:** clique cinco vezes seguidas no logo FutSENAI para alternar o modo. A escolha fica salva neste navegador e é indicada discretamente por um ponto ao lado da marca; no modo alternativo, o slogan é ocultado.
 - **Ranking interativo:** na página de estatísticas, clique nos cabeçalhos J, G, V, E, D ou Aprov. para ordenar pelos respectivos números. O padrão é gols, com aproveitamento como critério de desempate.
@@ -24,6 +25,10 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Re-sortear times:** o botão no resultado gera uma nova divisão usando os mesmos jogadores que já foram selecionados.
 - **Modo de edição local:** ao abrir o FutSENAI em `http://localhost:3000`, a edição fica habilitada automaticamente e o indicador **MODO ADM ATIVO** aparece. O servidor aceita gravações somente de conexões locais quando está na porta 3000. Em hospedagens e cópias estáticas, o site fica somente para visualização, sem indicador.
 - **Interface responsiva:** design branco e vermelho para computadores e celulares. A marca FutSENAI no menu lateral e no topo mobile abre a Visão geral; o breadcrumb no topo permite voltar a seções anteriores da hierarquia de navegação.
+
+## Imagens e Git LFS
+
+As fotos em `public/uploads` e as imagens de `public/assets` são rastreadas pelo Git LFS (veja `.gitattributes`). Para clonar ou atualizar o repositório, instale o `git-lfs` (`git lfs install`). Imagens grandes devem ser comprimidas antes de subir, por exemplo reduzindo para até 800 px no maior lado.
 
 ## Requisitos
 
@@ -113,6 +118,7 @@ FutSENAI/
 | `PUT` | `/api/players/:id` | Atualiza nome e/ou fotos (`photo`, `reserve_photo`) |
 | `PATCH` | `/api/players/:id/archive` | Arquiva ou reativa jogador |
 | `DELETE` | `/api/players/:id` | Exclui ou arquiva conforme o histórico |
+| `GET` | `/api/compare?a=:id&b=:id&scope=internal\|interclass` | Comparação entre dois jogadores: estatísticas, forma recente e confrontos diretos |
 | `GET` | `/api/matches?scope=internal\|interclass` | Lista partidas e placares filtrados |
 | `GET` | `/api/matches/:id` | Detalhes, escalações e gols agrupáveis |
 | `GET` | `/api/stats?scope=internal\|interclass` | Estatísticas e ranking da categoria escolhida, mais o histórico interclasse |

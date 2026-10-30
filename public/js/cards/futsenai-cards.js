@@ -314,7 +314,12 @@ import { SNAPSHOT } from './catalog-snapshot.js';
     const match = findCatalogPlayer(playerName, catalog);
     return match ? generateCard(match.template, 'uncommon', catalog).overall : null;
   }
-  window.FutSENAIPlayerCards = Object.freeze({ getUncommonOverall });
+  function getUncommonCard(playerName) {
+    const match = findCatalogPlayer(playerName, catalog);
+    return match ? generateCard(match.template, 'uncommon', catalog) : null;
+  }
+  function prepareCardAssets() { injectAssets(); }
+  window.FutSENAIPlayerCards = Object.freeze({ getUncommonOverall, getUncommonCard, renderCardHtml: card => renderCard(card) });
 
   function readCache() {
     try {
@@ -480,4 +485,4 @@ export function startPlayerCards() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 }
-export { getUncommonOverall };
+export { getUncommonOverall, getUncommonCard, prepareCardAssets, renderCard as renderCardHtml };
