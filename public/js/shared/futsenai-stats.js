@@ -211,6 +211,181 @@
   }
 
   // Resposta de /api/stats.
+  // Marcos históricos da turma. Recordes por partida seguem o filtro escolhido;
+  // as sequências de cada jogador usam todas as partidas, independente do filtro.
+  // Empates entre jogadores listam todos os empatados (holders); empates entre partidas
+  // são desempatados pelos gols do time vencedor (para a partida com menos gols, o menor).
+  function records(data, scope = 'internal') {
+    const normalized = normalizeScope(scope);
+    const chronological = data.matches.slice().sort((left, right) => left.played_on.localeCompare(right.played_on) || left.id - right.id);
+    const scopedDesc = chronological.filter(match => matchInScope(match, normalized)).sort(byDateDesc);
+    const summaries = new Map(scopedDesc.map(match => [match.id, matchSummary(match, data)]));
+    const playersById = new Map(data.players.map(player => [player.id, player]));
+    const holderOf = playerId => {
+      const player = playersById.get(playerId);
+      return { playerId, playerName: player.name, photoPath: player.photo_path || null, photoReservePath: player.photo_reserve_path || null };
+    };
+    const normalGoals = new Map();
+    data.goals.forEach(goal => {
+      if (goal.goal_type !== 'normal') return;
+      const key = `${goal.match_id}:${goal.player_id}`;
+      normalGoals.set(key, (normalGoals.get(key) || 0) + 1);
+    });
+
+    // Participações individuais em partidas do filtro, da mais recente para a mais antiga.
+    const lines = data.match_players
+      .filter(participant => summaries.has(participant.match_id) && playersById.has(participant.player_id))
+      .map(participant => {
+        const goals = normalGoals.get(`${participant.match_id}:${participant.player_id}`) || 0;
+        const assists = Number(participant.assists) || 0;
+        return { playerId: participant.player_id, matchId: participant.match_id, goals, assists, ga: goals + assists, playedOn: summaries.get(participant.match_id).played_on, id: participant.match_id };
+      })
+      .sort((left, right) => right.playedOn.localeCompare(left.playedOn) || right.id - left.id);
+
+    // Maior valor individual em uma partida; todos os jogadores que empatam entram na lista.
+    function bestLine(key) {
+      let bestValue = 0;
+      for (const line of lines) if (line[key] > bestValue) bestValue = line[key];
+      if (!bestValue) return null;
+      const tied = lines.filter(line => line[key] === bestValue);
+      const holders = [];
+      tied.forEach(line => { if (!holders.some(holder => holder.playerId === line.playerId)) holders.push(holderOf(line.playerId)); });
+      return { value: bestValue, representative: tied[0], holders, ties: tied.length - 1 };
+    }
+
+    // Melhor partida pela métrica; a tabela de desempate compara os gols do vencedor.
+    // isBetter decide entre duas partidas; a mais recente fica em caso de empate total.
+    function bestMatch(metric, { direction = 'max', tiebreak = null, tiebreakDirection = 'max' } = {}) {
+      let best = null, bestValue = null, bestTb = null, ties = 0;
+      for (const match of scopedDesc) {
+        const summary = summaries.get(match.id);
+        const value = metric(summary);
+        if (value === null || value === undefined) continue;
+        if (direction === 'max' && value <= 0) continue;
+        const tb = tiebreak ? tiebreak(summary) : 0;
+        const valueBetter = direction === 'max' ? value > bestValue : value < bestValue;
+        const tbBetter = tiebreakDirection === 'max' ? tb > bestTb : tb < bestTb;
+        if (best === null || valueBetter || (value === bestValue && tbBetter)) {
+          best = summary; bestValue = value; bestTb = tb; ties = 0;
+        } else if (value === bestValue && tb === bestTb) {
+          ties++;
+        }
+      }
+      return best ? { match: best, value: bestValue, ties } : null;
+    }
+    const winnerGoals = summary => Math.max(summary.score_a, summary.score_b);
+
+    // Sequências por jogador, em ordem cronológica, em todas as partidas.
+    const sidesByMatch = new Map();
+    data.match_players.forEach(participant => {
+      if (!sidesByMatch.has(participant.match_id)) sidesByMatch.set(participant.match_id, new Map());
+      sidesByMatch.get(participant.match_id).set(participant.player_id, participant.team_side);
+    });
+    const resultsByPlayer = new Map();
+    chronological.forEach(match => {
+      const score = scoresOf(match.id, data);
+      (sidesByMatch.get(match.id) || new Map()).forEach((side, playerId) => {
+        const own = side === 'A' ? score.A : score.B;
+        const rival = side === 'A' ? score.B : score.A;
+        const result = own > rival ? 'W' : own === rival ? 'D' : 'L';
+        if (!resultsByPlayer.has(playerId)) resultsByPlayer.set(playerId, []);
+        resultsByPlayer.get(playerId).push({ matchId: match.id, playedOn: match.played_on, result });
+      });
+    });
+
+    // Maior sequência de itens consecutivos que atendem ao critério.
+    function longestRun(items, ok) {
+      let best = null, run = null;
+      for (const item of items) {
+        if (!ok(item)) { run = null; continue; }
+        if (!run) run = { length: 0, first: item, last: item };
+        run.length++;
+        run.last = item;
+        if (!best || run.length > best.length) best = { ...run };
+      }
+      return best;
+    }
+    // Todos os jogadores com a maior sequência entram na lista de empatados.
+    function bestStreak(ok, items = null) {
+      let bestLength = 0;
+      const runs = [];
+      for (const player of data.players.slice().sort(byName)) {
+        const source = items ? items(player.id) : (resultsByPlayer.get(player.id) || []);
+        const run = longestRun(source, ok);
+        if (!run || run.length === 0) continue;
+        runs.push({ player, run });
+        if (run.length > bestLength) bestLength = run.length;
+      }
+      if (!bestLength) return null;
+      const tied = runs.filter(entry => entry.run.length === bestLength);
+      return {
+        length: bestLength,
+        holders: tied.map(entry => holderOf(entry.player.id)),
+        from: tied[0].run.first,
+        to: tied[0].run.last,
+        single: tied.length === 1 ? { from: tied[0].run.first.playedOn, to: tied[0].run.last.playedOn } : null
+      };
+    }
+
+    const streakWins = bestStreak(item => item.result === 'W');
+    const attended = new Map();
+    data.match_players.forEach(participant => {
+      if (!attended.has(participant.player_id)) attended.set(participant.player_id, new Set());
+      attended.get(participant.player_id).add(participant.match_id);
+    });
+    const streakPresence = bestStreak(
+      item => attended.get(item.playerId)?.has(item.matchId),
+      playerId => chronological.map(match => ({ playerId, matchId: match.id, playedOn: match.played_on, result: 'P' }))
+    );
+
+    const items = [];
+    const matchItem = (key, title, icon, unit, record) => {
+      if (!record) return;
+      items.push({ key, title, icon, unit, kind: 'match', value: record.value, ties: record.ties, matchId: record.match.id, match: record.match, holders: [] });
+    };
+    const playerMatchItem = (key, title, icon, unit, record) => {
+      if (!record) return;
+      const rep = record.representative;
+      items.push({
+        key, title, icon, unit, kind: 'match', value: record.value, ties: 0,
+        matchId: rep.matchId,
+        match: summaries.get(rep.matchId),
+        holders: record.holders,
+        playerId: record.holders[0].playerId,
+        playerName: record.holders[0].playerName
+      });
+    };
+    const playerStreakItem = (key, title, icon, unit, streak) => {
+      if (!streak) return;
+      items.push({
+        key, title, icon, unit, kind: 'player', value: streak.length,
+        holders: streak.holders,
+        playerId: streak.holders[0].playerId,
+        playerName: streak.holders[0].playerName,
+        from: streak.single ? streak.single.from : null,
+        to: streak.single ? streak.single.to : null
+      });
+    };
+
+    playerMatchItem('most-goals-game', 'Mais gols em uma partida', '⚽︎', 'gols', bestLine('goals'));
+    playerMatchItem('most-assists-game', 'Mais assistências em uma partida', '♕', 'assistências', bestLine('assists'));
+    playerMatchItem('most-ga-game', 'Mais participações em uma partida', '✚', 'participações', bestLine('ga'));
+    matchItem('biggest-draw', 'Empate com mais gols', '＝', 'gols no total', bestMatch(summary => (summary.score_a === summary.score_b ? summary.total_goals : 0)));
+    if (normalized === 'interclass') {
+      matchItem('second-year-best', 'Maior placar do 2º Ano', '2º', 'gols', bestMatch(summary => summary.score_b));
+    }
+    playerStreakItem('win-streak', 'Maior sequência de vitórias', '✦', 'vitórias seguidas', streakWins);
+    playerStreakItem('presence-streak', 'Maior sequência de presenças', '◷', 'partidas seguidas', streakPresence);
+    matchItem('biggest-rout', 'Maior goleada', '⇅', 'de diferença',
+      bestMatch(summary => Math.abs(summary.score_a - summary.score_b), { tiebreak: winnerGoals, tiebreakDirection: 'max' }));
+    matchItem('most-goals-match', 'Partida com mais gols', '✚', 'gols no total',
+      bestMatch(summary => summary.total_goals, { tiebreak: winnerGoals, tiebreakDirection: 'max' }));
+    matchItem('fewest-goals-match', 'Partida com menos gols', '━', 'gols no total',
+      bestMatch(summary => summary.total_goals, { direction: 'min', tiebreak: winnerGoals, tiebreakDirection: 'min' }));
+
+    return { scope: normalized, items };
+  }
+
   function statistics(data, scope = 'internal') {
     const players = playerList(data, true, scope)
       .filter(player => player.matches_played > 0 || player.goals > 0 || player.assists > 0)
@@ -229,7 +404,8 @@
         mostRecent: matches[0] || null,
         secondYearRivalry: rivalry(data)
       },
-      players
+      players,
+      records: records(data, scope)
     };
   }
 
@@ -335,6 +511,7 @@
     matchDetail,
     dashboard,
     statistics,
+    records,
     compare
   };
 });

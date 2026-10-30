@@ -1116,3 +1116,35 @@ noscript .noscript-msg{display:block;margin:40px auto;max-width:420px;padding:20
 .stats-table tbody tr.rank-gold:hover td,.stats-table tbody tr.rank-gold:focus-visible td{background:#ffedb0!important}
 .stats-table tbody tr.rank-silver:hover td,.stats-table tbody tr.rank-silver:focus-visible td{background:#e3e6ec!important}
 .stats-table tbody tr.rank-bronze:hover td,.stats-table tbody tr.rank-bronze:focus-visible td{background:#f7d6bb!important}
+
+/* ---------- Marcos históricos (Estatísticas) ---------- */
+.records-panel{padding-bottom:6px}
+.records-list{padding:0 14px 10px}
+.record-row{display:flex;align-items:center;gap:12px;padding:12px 10px;border-top:1px solid var(--line-soft);border-radius:12px;cursor:pointer;transition:background .15s var(--ease),transform .15s var(--ease)}
+.record-row:first-child{border-top:0}
+.record-row:hover,.record-row:focus-visible{background:var(--red-soft);transform:translateX(2px)}
+.record-row:focus-visible{outline:3px solid #f5a4b5;outline-offset:2px}
+.record-icon{flex:none;width:36px;height:36px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-size:15px;color:var(--red)}
+.record-player-icon{overflow:hidden;padding:0}
+.record-player-icon img{width:100%;height:100%;object-fit:cover}
+.record-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.record-title{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.record-copy strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.record-copy strong.record-score-line{white-space:normal;line-height:1.35}
+.record-copy small{color:var(--muted);font-size:11px;line-height:1.4}
+.record-ties{color:var(--amber)}
+.record-value{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;min-width:58px}
+.record-value strong{font:800 22px/1 var(--display);color:var(--ink)}
+.record-value span{font-size:10px;color:var(--muted);margin-top:3px;max-width:88px;text-align:right;line-height:1.2}
+
+/* Marcos com empate: duas fotos em diagonal, ou iniciais para três ou mais */
+.record-icon.record-duo{width:44px;height:44px;position:relative;overflow:hidden;padding:0;border-radius:13px}
+.record-duo .duo-half{position:absolute;inset:0;display:block;overflow:hidden}
+.record-duo .duo-half img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+.record-duo .duo-top{clip-path:polygon(0 0,100% 0,0 100%)}
+.record-duo .duo-bottom{clip-path:polygon(100% 0,100% 100%,0 100%)}
+.record-duo .duo-initial{display:grid;place-items:center;width:100%;height:100%;font:800 12px var(--display);color:var(--red)}
+.record-duo::after{content:"";position:absolute;left:-10%;top:52%;width:130%;height:1.5px;background:#fff;transform:rotate(-45deg);transform-origin:center;opacity:.9;pointer-events:none}
+.record-icon.record-trio{font:800 9px/1.1 var(--display);letter-spacing:.2px;color:var(--red);padding:0 3px;text-align:center;word-break:break-all}
+
+.record-copy strong.record-names{white-space:normal;line-height:1.35}
