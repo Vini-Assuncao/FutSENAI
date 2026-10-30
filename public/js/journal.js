@@ -1,5 +1,12 @@
 // journal.js
-import { DEFAULT_JOURNAL_COVER, JOURNAL_FEED_URL, JOURNAL_HOME_URL, JOURNAL_ROTATION_MS } from './config.js';
+import {
+  DEFAULT_JOURNAL_COVER,
+  JOURNAL_FEED_URL,
+  JOURNAL_HOME_URL,
+  JOURNAL_REFRESH_MS,
+  JOURNAL_ROTATION_MS,
+  JOURNAL_SUPABASE_CONFIG_URL
+} from './config.js';
 import { updateChrome } from './ui.js';
 
 export let journalNews = [];
@@ -7,6 +14,9 @@ export let journalCurrentIndex = 0;
 export let freshJournalNews = null;
 export let journalRotationTimer = null;
 export let journalTransitionTimer = null;
+let journalRefreshTimer = null;
+let journalLoadInProgress = false;
+let lastJournalLoadAt = 0;
 export function formatJournalDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Data indisponível';
@@ -103,7 +113,7 @@ export function stopJournalRotation() {
 }
 export function startJournalRotation() {
   stopJournalRotation();
-  if (journalNews.length < 2) return;
+  if (journalNews.length < 2 || (freshJournalNews && isFreshJournalNews(freshJournalNews.createdAt))) return;
   journalRotationTimer = window.setInterval(() => showJournalNews(journalCurrentIndex + 1), JOURNAL_ROTATION_MS);
 }
 export function showJournalNews(nextIndex) {
@@ -136,7 +146,8 @@ export function renderLatestJournalNews(items) {
     freshTickerRepeat.textContent = headline;
     freshTicker.setAttribute('aria-label', headline ? `Notícia fresca! Abrir Notícias FutSENAI: ${headline}` : 'Notícia fresca! Abrir Notícias FutSENAI');
   }
-  journalCurrentIndex = 0;
+  const freshIndex = journalNews.findIndex(item => item === freshJournalNews);
+  journalCurrentIndex = freshIndex >= 0 ? freshIndex : 0;
   renderCurrentJournalNews();
   startJournalRotation();
   updateChrome();
@@ -152,21 +163,104 @@ export function setupJournalCarouselControls() {
     if (dot) showJournalNews(Number(dot.dataset.journalIndex));
   });
 }
-export async function loadLatestJournalNews() {
+async function loadJournalSupabaseConfig() {
+  const response = await fetch(`${JOURNAL_SUPABASE_CONFIG_URL}?_=${Date.now()}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Configuração do Jornal respondeu ${response.status}`);
+  const source = await response.text();
+  const readValue = name => source.match(new RegExp(`\\b${name}\\s*:\\s*["']([^"']+)["']`))?.[1] || '';
+  const url = readValue('url');
+  const anonKey = readValue('anonKey');
+  let parsedUrl;
   try {
-    const response = await fetch(`${JOURNAL_FEED_URL}?_=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Feed do jornal respondeu ${response.status}`);
-    const articles = await response.json();
-    if (!Array.isArray(articles)) throw new Error('Formato de notícias inválido');
-    const latest = articles
-      .filter(item => item && typeof item.title === 'string' && item.title.trim()
-        && typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)))
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-      .slice(0, 3);
-    renderLatestJournalNews(latest);
-  } catch (error) {
-    // Mantém a notícia de reserva presente no HTML se o feed estiver indisponível.
-    console.warn('Não foi possível atualizar as notícias do Jornal FutSENAI.', error);
-    renderLatestJournalNews(fallbackJournalNewsFromMarkup());
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error('URL do Supabase do Jornal inválida');
   }
+  if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.supabase.co') || !anonKey) {
+    throw new Error('Configuração pública do Supabase do Jornal inválida');
+  }
+  return { url: parsedUrl.origin, anonKey };
+}
+async function loadJournalSupabaseNews() {
+  const config = await loadJournalSupabaseConfig();
+  const query = new URLSearchParams({
+    select: 'id,title,category,player,image,content,created_at',
+    order: 'created_at.desc'
+  });
+  const response = await fetch(`${config.url}/rest/v1/news?${query}`, {
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${config.anonKey}`
+    },
+    cache: 'no-store'
+  });
+  if (!response.ok) throw new Error(`Supabase do Jornal respondeu ${response.status}`);
+  const rows = await response.json();
+  if (!Array.isArray(rows) || rows.some(item => !item || typeof item.title !== 'string'
+    || !item.title.trim() || typeof item.created_at !== 'string'
+    || !Number.isFinite(Date.parse(item.created_at)))) {
+    throw new Error('Formato de notícias do Supabase inválido');
+  }
+  return rows.map(item => ({
+    ...item,
+    image: typeof item.image === 'string' ? item.image : '',
+    createdAt: item.created_at
+  }));
+}
+async function loadJournalJsonFeed() {
+  const response = await fetch(`${JOURNAL_FEED_URL}?_=${Date.now()}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Feed do Jornal respondeu ${response.status}`);
+  const articles = await response.json();
+  if (!Array.isArray(articles)) throw new Error('Formato de notícias inválido');
+  return articles
+    .filter(item => item && typeof item.title === 'string' && item.title.trim()
+      && typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, 3);
+}
+export async function loadLatestJournalNews() {
+  if (journalLoadInProgress) return;
+  journalLoadInProgress = true;
+  try {
+    let supabaseError = null;
+    try {
+      const latest = await loadJournalSupabaseNews();
+      if (latest.length) {
+        renderLatestJournalNews(latest.slice(0, 3));
+        return;
+      }
+    } catch (error) {
+      supabaseError = error;
+    }
+    try {
+      const latest = await loadJournalJsonFeed();
+      if (supabaseError) console.warn('Usando o feed JSON de reserva do Jornal FutSENAI.', supabaseError);
+      renderLatestJournalNews(latest);
+    } catch (error) {
+      if (journalNews.length) {
+        console.warn('Não foi possível atualizar as notícias do Jornal FutSENAI.', supabaseError || error);
+        return;
+      }
+      if (supabaseError) console.warn('Não foi possível carregar as notícias do Supabase do Jornal FutSENAI.', supabaseError);
+      console.warn('Não foi possível carregar o feed JSON do Jornal FutSENAI.', error);
+      renderLatestJournalNews(fallbackJournalNewsFromMarkup());
+    }
+  } catch (error) {
+    console.warn('Não foi possível atualizar as notícias do Jornal FutSENAI.', error);
+    if (!journalNews.length) renderLatestJournalNews(fallbackJournalNewsFromMarkup());
+  } finally {
+    lastJournalLoadAt = Date.now();
+    journalLoadInProgress = false;
+  }
+}
+export function setupJournalAutoRefresh() {
+  if (journalRefreshTimer !== null) window.clearInterval(journalRefreshTimer);
+  journalRefreshTimer = window.setInterval(() => {
+    if (!document.hidden) void loadLatestJournalNews();
+  }, JOURNAL_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - lastJournalLoadAt >= JOURNAL_REFRESH_MS) {
+      void loadLatestJournalNews();
+    }
+  });
 }

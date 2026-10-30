@@ -1,6 +1,6 @@
 // Ponto de entrada do FutSENAI: liga os módulos e inicia a aplicação.
 import { state, pageContent, isLocalServerOrigin } from './state.js';
-import { setupJournalCarouselControls, loadLatestJournalNews } from './journal.js';
+import { setupJournalCarouselControls, setupJournalAutoRefresh, loadLatestJournalNews } from './journal.js';
 import { bindGlobalEvents } from './events.js';
 import { setSidebarOpen, updateChrome } from './ui.js';
 import { renderCurrent } from './router.js';
@@ -33,6 +33,7 @@ async function applyRouteFromLocation() {
 }
 
 setupJournalCarouselControls();
+setupJournalAutoRefresh();
 bindGlobalEvents();
 
 // Atualiza o card do jornal sem bloquear o carregamento do painel.
