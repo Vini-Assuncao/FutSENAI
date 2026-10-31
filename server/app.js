@@ -13,7 +13,7 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static(publicDirectory));
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'FutSENAI', database: 'JSON' }));
+  app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'FutSENAI Score', database: 'JSON' }));
 
   // Leituras são públicas; qualquer alteração exige o servidor local.
   app.use('/api', (req, res, next) => {

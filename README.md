@@ -1,4 +1,4 @@
-# FutSENAI ⚽
+# FutSENAI Score ⚽
 
 Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto opcional, escalações que mudam a cada partida, gols por jogador em lote, histórico e estatísticas individuais.
 
@@ -9,7 +9,7 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Desempenho individual:** clique no cartão do jogador no elenco ou no nome dele na artilharia, no ranking ou na súmula para ver partidas, gols, assistências, vitórias, empates e derrotas separados entre jogos do 3º A e interclasse contra o 2º Ano. O histórico individual reúne as dez participações mais recentes dos dois modos, com acesso à súmula de cada partida.
 - **Comparar jogadores:** escolha dois jogadores e o recorte (entre nós · 3º A ou contra o 2º Ano). A tela mostra as cartas Incomum lado a lado, o confronto direto (partidas no mesmo time e em lados opostos), a forma recente e uma tabela com as estatísticas, destacando com ★ quem é melhor em cada uma.
 - **Fotos ampliadas:** clique ou use Enter/Espaço em uma foto de jogador para abri-la em um pop-up quadrado de tamanho uniforme. Feche clicando fora, no botão × ou pressionando Esc.
-- **Modo anti-resenha:** clique cinco vezes seguidas no logo FutSENAI para alternar o modo. A escolha fica salva neste navegador e é indicada discretamente por um ponto ao lado da marca; no modo alternativo, o slogan é ocultado.
+- **Modo anti-resenha:** clique cinco vezes seguidas no logo FutSENAI Score para alternar o modo. A escolha fica salva neste navegador e é indicada discretamente por um ponto ao lado da marca; no modo alternativo, o slogan é ocultado.
 - **Ranking interativo:** na página de estatísticas, clique nos cabeçalhos J, G, V, E, D ou Aprov. para ordenar pelos respectivos números. O padrão é gols, com aproveitamento como critério de desempate.
 - **Preservação do histórico:** jogadores que já participaram de jogos podem ser arquivados e reativados, sem quebrar partidas passadas. Jogadores sem histórico podem ser excluídos.
 - **Partidas internas:** registro da data e escalação, com local fixo como Quadra. Cada jogo tem os times Vermelho e Branco montados de novo; as equipes podem ser desbalanceadas (como 5 contra 6), desde que haja ao menos um jogador em cada lado.
@@ -23,8 +23,8 @@ Aplicação web para registrar o futebol entre amigos: jogadores com nome e foto
 - **Persistência real:** jogadores, partidas, escalações e gols são guardados em `public/data/futsenai.json`; as fotos principais e reservas ficam em `public/uploads/`, com nomes como `foto_heitor.webp` e `foto_heitor_reserva.png`.
 - **Jornal FutSENAI:** carrossel lateral compacto com até três notícias recentes, capas, tags, datas, navegação e indicadores, rotação automática contínua e link para o jornal. Notícias publicadas nas últimas 12 horas recebem o destaque pulsante **“NOTÍCIA FRESCA!”**; o título aparece em letreiro horizontal contínuo e clicável no topo. Quando há notícia fresca, a data do topo fica oculta somente em telas mobile para dar mais espaço ao letreiro. No modo anti-resenha, as notícias da lateral e o letreiro ficam ocultos.
 - **Re-sortear times:** o botão no resultado gera uma nova divisão usando os mesmos jogadores que já foram selecionados.
-- **Modo de edição local:** ao abrir o FutSENAI em `http://localhost:3000`, a edição fica habilitada automaticamente e o indicador **MODO ADM ATIVO** aparece. O servidor aceita gravações somente de conexões locais quando está na porta 3000. Em hospedagens e cópias estáticas, o site fica somente para visualização, sem indicador.
-- **Interface responsiva:** design branco e vermelho para computadores e celulares. A marca FutSENAI no menu lateral e no topo mobile abre a Visão geral; o breadcrumb no topo permite voltar a seções anteriores da hierarquia de navegação.
+- **Modo de edição local:** ao abrir o FutSENAI Score em `http://localhost:3000`, a edição fica habilitada automaticamente e o indicador **MODO ADM ATIVO** aparece. O servidor aceita gravações somente de conexões locais quando está na porta 3000. Em hospedagens e cópias estáticas, o site fica somente para visualização, sem indicador.
+- **Interface responsiva:** design branco e vermelho para computadores e celulares. A marca FutSENAI Score no menu lateral e no topo mobile abre a Visão geral; o breadcrumb no topo permite voltar a seções anteriores da hierarquia de navegação.
 
 ## Imagens e Git LFS
 
@@ -37,7 +37,7 @@ As fotos em `public/uploads` e as imagens de `public/assets` são rastreadas pel
 
 ## Como executar
 
-1. Baixe ou extraia o projeto e abra a pasta `FutSENAI` no terminal.
+1. Baixe ou extraia o projeto e abra a pasta `FutSENAI Score` no terminal.
 2. Instale as dependências:
 
    ```bash
@@ -77,7 +77,7 @@ Quando a API estiver indisponível, a interface tenta carregar esse JSON e perma
 ## Estrutura
 
 ```text
-FutSENAI/
+FutSENAI Score/
 ├── server.js                    # ponto de entrada: inicia o servidor HTTP
 ├── server/                      # backend (Express)
 │   ├── app.js                   # monta a aplicação, rotas e tratamento de erros

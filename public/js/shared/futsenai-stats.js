@@ -1,5 +1,5 @@
 /*
- * Cálculos puros do FutSENAI, compartilhados entre o servidor (Node) e o
+ * Cálculos puros do FutSENAI Score, compartilhados entre o servidor (Node) e o
  * modo somente leitura do navegador. Recebem o objeto de dados completo
  * (players, matches, match_players, goals) e nunca alteram esse objeto.
  */

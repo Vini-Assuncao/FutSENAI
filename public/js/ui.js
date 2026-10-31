@@ -49,7 +49,7 @@ export function updateChrome() {
   }
 }
 export function renderBreadcrumb() {
-  const home = '<button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI</button>';
+  const home = '<button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI Score</button>';
   const crumb = (label, view, current = false) => current
     ? `<strong aria-current="page">${esc(label)}</strong>`
     : `<button type="button" class="crumb-link" data-crumb-view="${view}">${esc(label)}</button>`;

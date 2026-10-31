@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#d7193f">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="FutSENAI — registre partidas, monte times, acompanhe gols e compare estatísticas da sua turma.">
+  <meta name="description" content="FutSENAI Score — registre partidas, monte times, acompanhe gols e compare estatísticas da sua turma.">
   <link rel="icon" href="assets/logo_futsenai.png">
-  <title>FutSENAI</title>
+  <title>FutSENAI Score</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="css/styles.css?v=20261030-sidebar-compare-motion-v1">
+  <link rel="stylesheet" href="css/styles.css?v=20261030-sidebar-width-v1">
 </head>
 <body>
   <a class="skip-link" href="#pageContent">Pular para o conteúdo</a>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <a class="brand" href="#dashboard" aria-label="FutSENAI - início">
+      <a class="brand" href="#dashboard" aria-label="FutSENAI Score - início">
         <span class="brand-mark">
-          <img src="assets/logo_futsenai_branca.png" alt="FutSENAI" class="brand-icon">
+          <img src="assets/logo_futsenai_branca.png" alt="FutSENAI Score" class="brand-icon">
         </span>
-        <span class="brand-copy"><strong>Fut<span>SENAI</span><span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong><small>FUTEBOL ENTRE AMIGOS</small></span>
+        <span class="brand-copy"><strong>Fut<span>SENAI</span> Score<span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong><small>FUTEBOL ENTRE AMIGOS</small></span>
       </a>
       <span class="admin-mode-notice" id="adminModeNotice" role="status" hidden>MODO ADM ATIVO</span>
       <div class="side-label">MENU PRINCIPAL</div>
@@ -54,23 +54,23 @@
     <main class="main-area">
       <header class="topbar">
         <button class="mobile-menu" id="mobileMenu" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">☰</button>
-        <a class="mobile-brand" href="#dashboard" aria-label="FutSENAI - início">
+        <a class="mobile-brand" href="#dashboard" aria-label="FutSENAI Score - início">
           <span class="brand-mark"><img src="assets/logo_futsenai_branca.png" alt=""></span>
-          <strong>Fut<span>SENAI</span><span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong>
+          <strong>Fut<span>SENAI</span> Score<span class="anti-resenha-indicator" title="Modo anti-resenha" aria-label="Modo anti-resenha" hidden></span></strong>
         </a>
-        <div class="breadcrumb"><div class="breadcrumb-path" id="breadcrumbPath"><button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI</button><span class="crumb-slash" aria-hidden="true">/</span><strong aria-current="page">Visão geral</strong></div><a class="fresh-news-ticker" id="freshNewsTicker" href="https://pietro-guedes.github.io/FutSenai-Jornal/" target="_blank" rel="noopener noreferrer" aria-label="Notícia fresca! Abrir Notícias FutSENAI" hidden><span class="fresh-news-ticker-label">NOTÍCIA FRESCA!</span><div class="fresh-news-ticker-viewport"><div class="fresh-news-ticker-track"><span id="freshNewsTickerText"></span><span id="freshNewsTickerRepeat" aria-hidden="true"></span></div></div></a></div>
+        <div class="breadcrumb"><div class="breadcrumb-path" id="breadcrumbPath"><button type="button" class="crumb-link" data-crumb-view="dashboard">FutSENAI Score</button><span class="crumb-slash" aria-hidden="true">/</span><strong aria-current="page">Visão geral</strong></div><a class="fresh-news-ticker" id="freshNewsTicker" href="https://pietro-guedes.github.io/FutSenai-Jornal/" target="_blank" rel="noopener noreferrer" aria-label="Notícia fresca! Abrir Notícias FutSENAI" hidden><span class="fresh-news-ticker-label">NOTÍCIA FRESCA!</span><div class="fresh-news-ticker-viewport"><div class="fresh-news-ticker-track"><span id="freshNewsTickerText"></span><span id="freshNewsTickerRepeat" aria-hidden="true"></span></div></div></a></div>
         <div class="topbar-actions"><div class="today-chip"><span>◷</span><span id="todayLabel">Hoje</span></div></div>
       </header>
 
       <div class="page-content" id="pageContent" tabindex="-1">
         <div class="loading-state"><div class="spinner"></div><p>Preparando a quadra...</p></div>
       </div>
-      <footer class="app-footer"><span>FutSENAI <b>•</b> Feito para a resenha depois do jogo.</span><span id="storageStatus">Dados salvos nesta aplicação.</span></footer>
+      <footer class="app-footer"><span>FutSENAI Score <b>•</b> Feito para a resenha depois do jogo.</span><span id="storageStatus">Dados salvos nesta aplicação.</span></footer>
     </main>
   </div>
   <div class="modal-root" id="modalRoot" aria-live="polite"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <noscript><p class="noscript-msg">O FutSENAI precisa do JavaScript ativado para funcionar.</p></noscript>
+  <noscript><p class="noscript-msg">O FutSENAI Score precisa do JavaScript ativado para funcionar.</p></noscript>
   <script src="js/shared/futsenai-stats.js?v=20261028-stats-v1" defer></script>
   <script type="module" src="js/main.js?v=20261028-modules-v1"></script>
 </body>

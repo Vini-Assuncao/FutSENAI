@@ -80,7 +80,7 @@ function staticApi(url, method) {
   const endpoint = new URL(url, document.baseURI);
   const data = state.staticData;
   const scope = Stats.normalizeScope(endpoint.searchParams.get('scope'));
-  if (endpoint.pathname.endsWith('/api/health')) return { ok: true, app: 'FutSENAI', database: 'JSON' };
+  if (endpoint.pathname.endsWith('/api/health')) return { ok: true, app: 'FutSENAI Score', database: 'JSON' };
   if (endpoint.pathname.endsWith('/api/dashboard')) return Stats.dashboard(data, scope);
   const playerHistory = endpoint.pathname.match(/\/api\/players\/(\d+)\/history$/);
   if (playerHistory) {

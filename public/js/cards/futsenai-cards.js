@@ -2,7 +2,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
 
 
 /*
- * Integração FutSENAI → FutSENAI Cards
+ * Integração FutSENAI Score → FutSENAI Cards
  * ------------------------------------------------------------------
  * Na tela de detalhes do jogador, logo após "Últimas partidas", mostra a
  * seção "Cards" com as 6 versões (Comum → Ícone) do jogador, desenhadas
@@ -15,7 +15,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
  *     diferente do esperado, usa o SNAPSHOT embutido abaixo.
  *  3. Reproduz a mesma geração de card do Cards (multiplicador de raridade,
  *     bônus de edição especial, fórmula de overall e limites por raridade).
- *  4. Casa o nome do jogador do FutSENAI com o do Cards ("Pietro" →
+ *  4. Casa o nome do jogador do FutSENAI Score com o do Cards ("Pietro" →
  *     "Pietro Guedes", "Matheus" → "Mateus", apelidos, acentos...).
  */
   // ───────────────────────── Configuração ─────────────────────────
@@ -32,7 +32,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
   const ATTR_KEYS = ['pace', 'shooting', 'passing', 'dribbling', 'defending', 'physical'];
 
   // Apelidos / outras grafias → nome do jogador NO FutSENAI CARDS (chave).
-  // Use quando o nome no FutSENAI for bem diferente do nome do card.
+  // Use quando o nome no FutSENAI Score for bem diferente do nome do card.
   const ALIASES = {
     'Muzy': ['Gustavo Hyppolito', 'Gustavo Hipólito'],
     'Mateus Lopes': ['Matheus Lopes'],
@@ -41,7 +41,7 @@ import { SNAPSHOT } from './catalog-snapshot.js';
     'Enzo Thomas': ['Enzo'],
   };
 
-  // Forçar uma correspondência manual: "nome no FutSENAI" → "nome no Cards".
+  // Forçar uma correspondência manual: "nome no FutSENAI Score" → "nome no Cards".
   // Ex.: { 'zé': 'Rafael Dutra' }. As chaves são comparadas sem acento/maiúscula.
   const NAME_OVERRIDES = {};
 

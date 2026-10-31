@@ -5,7 +5,7 @@
 @media(max-width:760px){.sidebar{position:fixed;z-index:40;left:-270px;top:0;width:252px;height:100dvh;min-height:0;overflow-y:auto;overscroll-behavior:contain;transition:left .22s;box-shadow:10px 0 35px #1b1b2514}.sidebar.open{left:0}body.sidebar-open:before{content:"";position:fixed;z-index:39;inset:0;background:#15162066}.mobile-menu{display:block}.topbar{height:65px;padding:0 17px;gap:12px}.breadcrumb{flex:1;min-width:0}.topbar-actions{gap:10px}.today-chip{font-size:10px}.page-content{padding:25px 16px 30px}.app-footer{padding:14px 16px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-card{min-height:119px;padding:15px}.stat-value{font-size:27px}.dashboard-bottom{grid-template-columns:1fr}.page-heading{align-items:flex-start;flex-direction:column;margin-bottom:21px;gap:16px}.heading-actions{width:100%}.heading-actions .btn{flex:1}.toolbar{gap:9px}.searchbox{max-width:none;flex-basis:100%}.filter-select{flex:1;min-width:0}.results-label{margin-left:0}.match-cards{grid-template-columns:1fr}.detail-columns{grid-template-columns:1fr}.detail-match-hero{padding:18px}.detail-scoreboard{gap:9px;grid-template-columns:minmax(0,1fr) minmax(85px,.7fr) minmax(0,1fr)}.detail-team strong{font-size:12px}.detail-score{font-size:35px}.modal-root{padding:10px}.modal-card{max-height:calc(100dvh - 20px);border-radius:16px}.modal-header{padding:19px 18px 15px}.modal-body{padding:18px}.modal-footer{padding:12px 18px 18px}.app-footer span:last-child{display:none}}
 @media(max-width:480px){.brand{padding-bottom:25px}.stats-grid{gap:9px}.stat-top{font-size:10px}.stat-icon{height:30px;width:30px;font-size:15px}.stat-value{font-size:25px;margin-top:12px}.stat-foot{font-size:9px}.player-grid{grid-template-columns:1fr}.player-card{padding:16px}.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:auto}.team-config-grid{grid-template-columns:1fr}.participant-row{grid-template-columns:18px minmax(0,1fr) 98px;gap:7px;padding:9px}.match-card{padding:15px}.scoreboard-score{font-size:25px}.match-scoreboard{gap:7px}.team-mini span:last-child{max-width:95px}.quick-actions{padding:0 12px;gap:8px}.quick-action{padding:11px 8px;gap:7px}.quick-action-icon{height:30px;width:30px}.panel-head{padding-left:17px;padding-right:17px}.scorer-list{padding-left:17px;padding-right:17px}.match-list{padding-left:12px;padding-right:12px}.match-teams{gap:5px}.match-score{padding:7px 8px;min-width:60px}.page-heading h1{font-size:27px}.detail-scoreboard{grid-template-columns:minmax(0,1fr) 85px minmax(0,1fr)}.detail-score{font-size:31px}.goal-score-preview{gap:9px;padding:10px}.modal-footer .btn{flex:1}}
 
-/* Ajustes FutSENAI: cadastro e partidas simplificados, escalações em destaque e gols em lote. */
+/* Ajustes FutSENAI Score: cadastro e partidas simplificados, escalações em destaque e gols em lote. */
 .player-card-name p{margin:6px 0 0}
 .how-it-works-panel{min-width:0}
 .how-it-works-list{padding:0 20px 18px;display:grid}
@@ -482,7 +482,7 @@
 @media(max-width:420px){.player-history-match-date .match-kind{font-size:7px}.player-history-contribution{min-width:68px;padding:6px 8px}}
 
 /* =====================================================================
-   FutSENAI — Camada de design v2
+   FutSENAI Score — Camada de design v2
    Tokens, componentes e refinamentos visuais. Nenhum seletor existente
    foi removido: esta camada apenas padroniza e embeleza o que já existia.
    ===================================================================== */
@@ -505,6 +505,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 [hidden]{display:none!important}
 
 /* ---------- 3. Barra lateral ---------- */
+.sidebar{width:280px;flex:0 0 280px}
 .sidebar{background:linear-gradient(180deg,#fff 0%,#fffafb 100%);border-right:1px solid var(--line);padding:26px 16px 18px}
 .brand{padding:0 10px 30px;transition:opacity .15s}
 .brand:hover{opacity:.9}
@@ -949,6 +950,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .rivalry-panel{padding:18px}
   .player-profile-avatar{width:80px;height:80px}
 }
+@media(max-width:760px){.sidebar{width:280px;left:-298px}}
 
 /* ---------- 19. Impressão ---------- */
 @media print{

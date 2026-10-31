@@ -1,4 +1,4 @@
-// Ponto de entrada do FutSENAI: liga os módulos e inicia a aplicação.
+// Ponto de entrada do FutSENAI Score: liga os módulos e inicia a aplicação.
 import { state, pageContent, isLocalServerOrigin } from './state.js';
 import { setupJournalCarouselControls, setupJournalAutoRefresh, loadLatestJournalNews } from './journal.js';
 import { bindGlobalEvents } from './events.js';
@@ -64,7 +64,7 @@ window.addEventListener('popstate', async () => {
     if (state.view === 'dashboard') await renderDashboard();
     else await renderCurrent();
   } catch (error) {
-    pageContent.innerHTML = `<div class="empty-state"><div class="empty-symbol">!</div><h3>Não foi possível carregar o FutSENAI</h3><p>Verifique se o servidor está iniciado ou se o arquivo de dados foi publicado em <strong>public/data/futsenai.json</strong>.</p><p style="font-size:10px">Detalhe: ${esc(error.message)}</p><button class="btn btn-primary" data-action="retry">Tentar novamente</button></div>`;
+    pageContent.innerHTML = `<div class="empty-state"><div class="empty-symbol">!</div><h3>Não foi possível carregar o FutSENAI Score</h3><p>Verifique se o servidor está iniciado ou se o arquivo de dados foi publicado em <strong>public/data/futsenai.json</strong>.</p><p style="font-size:10px">Detalhe: ${esc(error.message)}</p><button class="btn btn-primary" data-action="retry">Tentar novamente</button></div>`;
   }
   enableHistory();
   syncHistory({ replace: true });
