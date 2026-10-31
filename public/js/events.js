@@ -110,6 +110,7 @@ export function bindGlobalEvents() {
       else if (action === 'back-matches' || action === 'go-matches') await navigate('matches');
       else if (action === 'go-players') await navigate('players');
       else if (action === 'go-stats') await navigate('stats');
+      else if (action === 'scroll-team') document.getElementById('teamSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       else if (action === 'compare-player') {
         // Abre a comparação já com este jogador no primeiro espaço; o segundo fica para ser escolhido.
         state.compare = { a: id, b: state.compare.b === id ? null : state.compare.b };

@@ -22,7 +22,7 @@ export async function renderDashboard() {
   const scorerHtml = result.topScorers.length ? result.topScorers.map(scorerRow).join('') : `<div class="empty-inline"><strong>Nenhuma estatística neste filtro</strong>Registre gols ou selecione outro tipo de partida.</div>`;
   const recentHtml = result.recentMatches.length ? result.recentMatches.map(renderMatchRow).join('') : `<div class="empty-inline"><strong>Nenhuma partida neste filtro</strong>Registre um jogo para ver o placar por aqui.</div>`;
   pageContent.innerHTML = `
-    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO À QUADRA</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions">${canEdit() ? '<button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button>' : ''}<button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button></div></section>
+    <section class="page-heading"><div><div class="eyebrow">BEM-VINDO À QUADRA</div><h1>O jogo começa aqui<span style="color:var(--red)">.</span></h1><p>Organize a resenha, guarde os resultados e descubra quem está brilhando na quadra.</p></div><div class="heading-actions">${canEdit() ? '<button class="btn btn-secondary" data-action="new-player">＋ Novo jogador</button>' : ''}<button class="btn btn-primary" data-action="new-match">＋ ${matchActionLabel}</button>${canEdit() ? '' : '<button class="btn btn-secondary" data-action="scroll-team">☕︎ Equipe do FutSENAI</button>'}</div></section>
     <div class="scope-filter-row">${scopeFilterHtml()}</div>
     <section class="stats-grid">
       ${statCard('Jogadores ativos', s.activePlayers, '♟', 'Elenco disponível do 3º A')}
@@ -125,7 +125,7 @@ function teamSectionHtml() {
     </${tag}>`;
   }).join('');
 
-  return `<section class="team-section" aria-labelledby="teamTitle">
+  return `<section class="team-section" id="teamSection" aria-labelledby="teamTitle">
     <div class="team-head">
       <div class="eyebrow">NOSSA TURMA, NOSSO CÓDIGO</div>
       <h2 id="teamTitle">A Equipe do FutSENAI<span class="team-dot">.</span></h2>
